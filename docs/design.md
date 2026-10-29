@@ -46,9 +46,11 @@ El estado **no vive en el servidor**. Cada petición lleva lo necesario para rec
 - **Inodos**: la disposición de bloques se deriva de `seed`. "Otro disco" = nueva semilla
   (el cliente la cambia y recarga). Resolver una posición es una función pura
   `resolve_position(pos)`.
-- **Procesos**: el estado es una función pura de `(seed, n_pasos)`. "Siguiente paso" envía
-  `payload.step = n+1`; el servidor recrea la máquina y replay determinista de `n+1` eventos
-  (14 eventos ⇒ coste nulo). "Reiniciar" = `step = 0`.
+- **Procesos**: modelo **event-sourcing**. El estado es una función pura del **log de
+  eventos** (secuencia de transiciones). El cliente guarda el log y lo envía completo; el
+  servidor lo replay determinista y aplica encima el evento nuevo validando sus
+  precondiciones. Así se permite control manual (crear procesos, disparar
+  interrupt/io_wait/…) sin memoria de servidor.
 
 Ventajas: sin condiciones de carrera, sin estado compartido entre visitantes, sin pérdida
 de estado al reiniciar el dyno, y respuestas idempotentes fáciles de testear.

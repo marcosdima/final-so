@@ -41,14 +41,20 @@
 
 ## Fase 3 · Arreglar processes y migrar a la nueva base
 
-- ☑ 3.1 `processes/services.py` → `processes/simulation.py`: constructor con `seed`,
-      sin singleton; `get_state()` + `dispatch("step", {"step": n})` (replay determinista)
+- ☑ 3.1 `processes/services.py` → `processes/simulation.py`: modelo **event-sourcing
+      stateless** — constructor con `seed` + `events` (log), sin singleton;
+      `get_state()` + `dispatch("apply", {"events": [...], "event": {...}})` con replay
+      determinista y validación de precondiciones por transición
 - ☑ 3.2 Registrar `SimulationSpec("processes", …)` en `core`
 - ☑ 3.3 `processes/views.py` → fábricas de `core`; conservar `app_name`
-- ☑ 3.4 JS: cliente mantiene `step` local; `step`/`auto`/`reset` vía API stateless
-- ☑ 3.5 Tests: estado inicial, replay completo, `step` fuera de rango, API
+- ☑ 3.4 UI/JS: control manual — **Añadir proceso**, selector de proceso, botones de
+      transición (admit/dispatch/interrupt/io_wait/io_complete/exit), **Reiniciar**; el
+      cliente mantiene el log de eventos y lo sincroniza desde `state.events`
+- ☑ 3.5 Tests: crear, ciclo completo, interrupt, E/S, transición inválida, API, log
+      corrupto
 
-**Verificación**: `manage.py test processes` + prueba manual (step, auto, reset).
+**Verificación**: `manage.py test processes` + prueba manual (crear, admitir,
+despachar, interrumpir, E/S, salir).
 
 ## Fase 4 · Despliegue en Render
 

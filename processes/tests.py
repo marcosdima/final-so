@@ -1,5 +1,5 @@
 """
-Pruebas de la simulación del ciclo de vida de procesos.
+Pruebas de la simulación del ciclo de vida de procesos (modelo interactivo).
 """
 
 import json
@@ -12,60 +12,159 @@ from core.exceptions import SimulationError
 from .simulation import ProcessLifecycleSimulation
 
 
+def apply(sim, *events):
+    """Aplica una secuencia de eventos válidos y devuelve el último resultado."""
+    result = None
+    for ev in events:
+        result = sim.dispatch("apply", {"events": sim.get_state()["events"], "event": ev})
+    return result
+
+
 class ProcessLifecycleTests(TestCase):
     def setUp(self):
         self.sim = ProcessLifecycleSimulation(seed=1)
         self.client = Client()
 
-    def test_initial_state(self):
+    def test_initial_state_is_empty(self):
         state = self.sim.get_state()
+        self.assertEqual(state["pids"], [])
         self.assertIsNone(state["running"])
-        self.assertEqual(state["event_index"], 0)
-        self.assertEqual(state["total_events"], 14)
+        self.assertEqual(state["events"], [])
 
-    def test_full_run_terminates(self):
-        result = self.sim.dispatch("step", {"step": 14})
+    def test_create_process(self):
+        result = self.sim.dispatch(
+            "apply", {"events": [], "event": {"type": "create", "pid": 1}}
+        )
         self.assertTrue(result["applied"])
         state = self.sim.get_state()
-        self.assertEqual(state["event_index"], 14)
-        self.assertEqual(len(state["terminated"]), 3)
+        self.assertEqual(state["pids"], [1])
+        self.assertEqual(state["states"]["1"], "NEW")
 
-    def test_step_zero_is_initial(self):
-        self.sim.dispatch("step", {"step": 5})
-        state = self.sim.dispatch("step", {"step": 0})
-        self.assertEqual(state["event_index"], 0)
+    def test_full_lifecycle_dispatch_exit(self):
+        events = [
+            {"type": "create", "pid": 1},
+            {"type": "admit", "pid": 1},
+            {"type": "dispatch", "pid": 1},
+            {"type": "exit", "pid": 1},
+        ]
+        result = apply(self.sim, *events)
+        self.assertTrue(result["applied"])
+        state = self.sim.get_state()
+        self.assertEqual(state["states"]["1"], "TERMINATED")
+        self.assertEqual(state["terminated"], [1])
+        self.assertIsNone(state["running"])
 
-    def test_step_out_of_range(self):
-        with self.assertRaises(SimulationError):
-            self.sim.dispatch("step", {"step": 15})
+    def test_interrupt_returns_to_ready(self):
+        apply(
+            self.sim,
+            {"type": "create", "pid": 1},
+            {"type": "admit", "pid": 1},
+            {"type": "dispatch", "pid": 1},
+        )
+        result = self.sim.dispatch(
+            "apply",
+            {
+                "events": self.sim.get_state()["events"],
+                "event": {"type": "interrupt", "pid": 1},
+            },
+        )
+        self.assertTrue(result["applied"])
+        state = self.sim.get_state()
+        self.assertEqual(state["states"]["1"], "READY")
+        self.assertIn(1, state["ready_queue"])
+        self.assertIsNone(state["running"])
+
+    def test_io_wait_and_complete(self):
+        apply(
+            self.sim,
+            {"type": "create", "pid": 1},
+            {"type": "admit", "pid": 1},
+            {"type": "dispatch", "pid": 1},
+            {"type": "io_wait", "pid": 1},
+        )
+        self.assertEqual(self.sim.get_state()["states"]["1"], "WAITING")
+        result = self.sim.dispatch(
+            "apply",
+            {
+                "events": self.sim.get_state()["events"],
+                "event": {"type": "io_complete", "pid": 1},
+            },
+        )
+        self.assertTrue(result["applied"])
+        self.assertEqual(self.sim.get_state()["states"]["1"], "READY")
+
+    def test_invalid_transition_reports_reason(self):
+        # dispatch sin haber admitido ⇒ precondición fallida
+        apply(self.sim, {"type": "create", "pid": 1})
+        result = self.sim.dispatch(
+            "apply",
+            {
+                "events": self.sim.get_state()["events"],
+                "event": {"type": "dispatch", "pid": 1},
+            },
+        )
+        self.assertFalse(result["applied"])
+        self.assertIn("reason", result)
 
     def test_stateless_deterministic(self):
-        a = ProcessLifecycleSimulation(seed=1)
-        b = ProcessLifecycleSimulation(seed=1)
-        a.dispatch("step", {"step": 6})
-        b.dispatch("step", {"step": 6})
+        events = [
+            {"type": "create", "pid": 1},
+            {"type": "admit", "pid": 1},
+            {"type": "dispatch", "pid": 1},
+        ]
+        a = ProcessLifecycleSimulation(seed=1, events=events)
+        b = ProcessLifecycleSimulation(seed=1, events=events)
         self.assertEqual(a.get_state(), b.get_state())
 
-    def test_structure_api(self):
+    def test_unknown_action(self):
+        with self.assertRaises(SimulationError):
+            self.sim.dispatch("nope", {})
+
+    def test_bad_history_raises(self):
+        with self.assertRaises(SimulationError):
+            ProcessLifecycleSimulation(seed=1, events=[{"type": "dispatch", "pid": 1}])
+
+
+class ProcessApiTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+
+    def test_index_view_status(self):
         response = self.client.get(reverse("processes:index"))
         self.assertEqual(response.status_code, 200)
 
-    def test_action_step_api(self):
-        response = self.client.post(
+    def _post(self, payload):
+        return self.client.post(
             reverse("processes:action_api"),
-            data=json.dumps({"seed": 1, "action": "step", "payload": {"step": 1}}),
+            data=json.dumps({"seed": 1, "action": "apply", "payload": payload}),
             content_type="application/json",
         )
+
+    def test_action_create(self):
+        response = self._post({"events": [], "event": {"type": "create", "pid": 1}})
         self.assertEqual(response.status_code, 200)
         data = response.json()
         self.assertTrue(data["result"]["applied"])
-        self.assertEqual(data["state"]["event_index"], 1)
+        self.assertEqual(data["state"]["pids"], [1])
+        self.assertEqual(len(data["state"]["events"]), 1)
 
-    def test_action_step_out_of_range_400(self):
-        response = self.client.post(
-            reverse("processes:action_api"),
-            data=json.dumps({"seed": 1, "action": "step", "payload": {"step": 99}}),
-            content_type="application/json",
+    def test_action_invalid_transition_200_with_reason(self):
+        response = self._post(
+            {"events": [{"type": "create", "pid": 1}], "event": {"type": "exit", "pid": 1}}
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertFalse(data["result"]["applied"])
+        self.assertIn("reason", data["result"])
+
+    def test_action_bad_history_400(self):
+        response = self._post(
+            {"events": [{"type": "exit", "pid": 1}], "event": None}
         )
         self.assertEqual(response.status_code, 400)
         self.assertIn("error", response.json())
+
+    def test_action_reset_via_empty_events(self):
+        response = self._post({"events": []})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["state"]["pids"], [])

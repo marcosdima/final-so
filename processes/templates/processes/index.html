@@ -3,26 +3,41 @@
 {% block header_title %}Ciclo de vida de procesos{% endblock %}
 {% block header_subtitle %}Estados y transiciones de procesos{% endblock %}
 {% block title %}Ciclo de vida de procesos{% endblock %}
-{% block extra_head %}
+{% block extra_js %}
 {% endblock %}
 {% block content %}
 <section class="process-sim">
   <div class="process-toolbar">
     <div class="process-toolbar-info">
       <h3>Ciclo de vida de procesos</h3>
-      <p>Los rectángulos representan procesos y se desplazan entre estados a medida que se aplican los eventos.</p>
+      <p>Crea procesos a mano y muévelos entre estados con las transiciones. Los rectángulos se desplazan al aplicar cada evento.</p>
     </div>
     <div class="process-toolbar-actions">
-      <button type="button" id="btn-step" class="btn btn-ctrl"><i data-lucide="play"></i> Siguiente paso</button>
-      <button type="button" id="btn-auto" class="btn btn-ctrl btn-play"><i data-lucide="timer"></i> Auto</button>
+      <button type="button" id="btn-add" class="btn btn-ctrl"><i data-lucide="plus"></i> Añadir proceso</button>
       <button type="button" id="btn-reset" class="btn btn-ctrl"><i data-lucide="rotate-ccw"></i> Reiniciar</button>
+    </div>
+  </div>
+
+  <!-- Barra de transiciones: aplicar al proceso seleccionado -->
+  <div class="process-actions-bar">
+    <label for="proc-select">Proceso objetivo:</label>
+    <select id="proc-select" class="proc-select">
+      <option value="">— selecciona —</option>
+    </select>
+    <div class="process-action-buttons">
+      <button type="button" class="btn btn-act" data-action="admit" title="Admitir (NEW → READY)"><i data-lucide="log-in"></i> Admitir</button>
+      <button type="button" class="btn btn-act" data-action="dispatch" title="Despachar a la CPU (READY → RUNNING)"><i data-lucide="cpu"></i> Despachar</button>
+      <button type="button" class="btn btn-act" data-action="interrupt" title="Interrumpir (RUNNING → READY)"><i data-lucide="zap"></i> Interrumpir</button>
+      <button type="button" class="btn btn-act" data-action="io_wait" title="Espera de E/S (RUNNING → WAITING)"><i data-lucide="hourglass"></i> E/S espera</button>
+      <button type="button" class="btn btn-act" data-action="io_complete" title="Fin de E/S (WAITING → READY)"><i data-lucide="check"></i> E/S fin</button>
+      <button type="button" class="btn btn-act" data-action="exit" title="Salir (RUNNING → TERMINATED)"><i data-lucide="log-out"></i> Salir</button>
     </div>
   </div>
 
   <div class="proc-diagram-wrap">
     <svg class="proc-arrows" viewBox="0 0 100 80" preserveAspectRatio="none" aria-hidden="true">
       <defs>
-        <marker id="proc-arrowhead" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+        <marker id="proc-arrowhead" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
           <path d="M0,0 L6,3 L0,6 Z" fill="var(--active-blue)" />
         </marker>
       </defs>

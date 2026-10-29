@@ -1,35 +1,33 @@
 # Spec — Simulación del Ciclo de Vida de Procesos
 
-> Spec de la simulación `processes` (SDD · Fase 0). Satisface el contrato de
+> Spec de la simulación `processes` (SDD). Satisface el contrato de
 > [spec.md §6](../spec.md).
 
 ## 1. Descripción
 
 Anima la **máquina de estados de un proceso** (NEW ➜ READY ➜ RUNNING ➜ WAITING /
-TERMINATED) aplicando una secuencia fija de eventos. Cada evento muta los estados, la cola
-de listos, la cola de espera y la CPU; la UI desplaza visualmente los tokens entre
-contenedores (animación FLIP).
+TERMINATED) con **control manual**: el usuario crea procesos a mano y dispara
+transiciones (admitir, despachar, interrumpir, espera/fin de E/S, salir) sobre el
+proceso que elija. La UI desplaza los tokens entre contenedores (animación FLIP).
 
 ## 2. Estados
 
-| Estado | Significado | Representación UI |
-|--------|-------------|-------------------|
-| `NEW` | Recién creado, aún no admitido | Contenedor "New" |
-| `READY` | En cola de listos (`ready_queue`) | Contenedor "Ready" |
-| `RUNNING` | En la CPU (`running`) | Contenedor "Running" (resaltado) |
-| `WAITING` | Esperando E/S (`waiting_queue`) | Contenedor "Waiting" |
-| `TERMINATED` | Finalizado (`terminated`) | Contenedor "Terminated" |
+| Estado | Significado | Cola asociada |
+|--------|-------------|---------------|
+| `NEW` | Recién creado, aún no admitido | — |
+| `READY` | En cola de listos | `ready_queue` |
+| `RUNNING` | En la CPU (máx. 1 a la vez) | `running` |
+| `WAITING` | Esperando E/S | `waiting_queue` |
+| `TERMINATED` | Finalizado | `terminated` |
 
-## 3. Procesos y eventos
+## 3. Transiciones y precondiciones
 
-- PIDs por defecto: `[1, 2, 3]`.
-- Guion de eventos por defecto (`DEFAULT_PROCESS_EVENTS`): **14 eventos** que recorren
-  admit/dispatch/io_wait/io_complete/interrupt/exit. El guion es parte del estado.
+Cada acción es un **evento** `{type, pid}`. Si la precondición falla, el evento no se
+aplica y se devuelve `applied: false` con un `reason` (didáctico).
 
-### Transiciones y precondiciones
-
-| Evento | Desde ➜ Hasta | Precondición (si falla ⇒ `applied: false` + `reason`) |
-|--------|---------------|-------------------------------------------------------|
+| Evento | Transición | Precondición |
+|--------|------------|--------------|
+| `create` | — ➜ NEW | PID entero ≥ 1 y aún no usado |
 | `admit` | NEW ➜ READY | el proceso está en NEW |
 | `dispatch` | READY ➜ RUNNING | CPU libre y proceso en READY |
 | `interrupt` | RUNNING ➜ READY | el proceso es el que está RUNNING |
@@ -37,23 +35,25 @@ contenedores (animación FLIP).
 | `io_complete` | WAITING ➜ READY | el proceso está en WAITING |
 | `exit` | RUNNING ➜ TERMINATED | el proceso es el que está RUNNING |
 
-## 4. Modelo stateless
+## 4. Modelo stateless (event-sourcing)
 
-El estado es una función pura de `(seed, step)`:
+El estado es una función pura del **log de eventos** (la secuencia de transiciones
+aplicadas):
 
 ```
-estado(step) = replay de los primeros `step` eventos sobre el guion
+estado = replay(log de eventos)
 ```
 
-- El cliente guarda localmente el índice de paso (`step`), inicialmente `0`.
-- **Siguiente paso** ⇒ `POST {"action":"step","payload":{"step": n+1}}`; el servidor
-  recrea la máquina y replay `n+1` eventos, devolviendo el estado resultante y el detalle
-  del evento aplicado en la posición `n`.
-- **Reiniciar** ⇒ `step = 0` (sin llamada a red, o con `step=0` explícito).
-- **Auto** ⇒ el cliente repite "siguiente paso" en intervalo.
+- El cliente guarda localmente el log (`events`) y lo envía completo en cada petición.
+- Para aplicar un evento nuevo, el cliente manda `{"events": [...log...], "event": {...}}`.
+  El servidor replay el log, valida y aplica el evento nuevo, y devuelve el **log
+  efectivo** (el cliente lo sincroniza desde `state.events`).
+- Un evento inválido **no** se añade al log; el estado queda como estaba y se devuelve el
+  motivo.
+- **Reiniciar** = aplicar con `events: []` (estado vacío).
 
-`seed` no afecta al guion (es fijo) pero se mantiene en el contrato por uniformidad y
-para futuros guioneos aleatorios.
+Esto permite control manual ilimitado sin memoria de servidor: dos visitantes en el mismo
+log ven exactamente lo mismo (clave para Render).
 
 ## 5. API
 
@@ -62,10 +62,10 @@ para futuros guioneos aleatorios.
 ```json
 {
   "meta": { "slug": "processes", "seed": 1 },
-  "pids": [1, 2, 3],
-  "states": { "1": "READY", "2": "NEW", "3": "NEW" },
-  "ready_queue": [1], "waiting_queue": [], "running": null, "terminated": [],
-  "events": [ … ], "event_index": 2, "total_events": 14,
+  "pids": [1, 2],
+  "states": { "1": "READY", "2": "RUNNING" },
+  "ready_queue": [1], "waiting_queue": [], "running": 2, "terminated": [],
+  "events": [ { "type": "create", "pid": 1 }, … ],
   "history": [ { "event": {…}, "state": {…} }, … ]
 }
 ```
@@ -74,33 +74,36 @@ para futuros guioneos aleatorios.
 
 | Acción | Payload | Resultado |
 |--------|---------|-----------|
-| `step` | `{"step": n}` (n = índice destino, 0 ≤ n ≤ total) | `{"applied": bool, "reason": str, "event": {…}, "event_index": n}` |
+| `apply` | `{"events": [...], "event": {type, pid} \| null}` | `{"applied": bool, "reason": str, "event": {…}}` |
 
-- `step: 0` ⇒ estado inicial, sin eventos aplicados (`result.event = null`).
-- `step > total_events` ⇒ `SimulationError` (400).
-- Nota: `history` se reconstruye como el replay de los `n` eventos aplicados.
+- `event: null` ⇒ sólo reconstruir el estado del log (sin aplicar nada).
+- `events: []` + `event: null` ⇒ estado inicial (reinicio).
 
 ### Errores de dominio (`SimulationError` ⇒ 400)
 
-- `step` no entero o fuera de `[0, total_events]`.
-- Evento cuya precondición no se cumple durante el replay (no debería ocurrir con el
-  guion por defecto; protegido).
+- `events` no es una lista.
+- Algún evento del log es inválido (log corrupto).
+
+> Un evento nuevo inválido **no** es un 400: responde 200 con `applied: false` y `reason`.
 
 ## 6. Contrato de determinismo
 
-`(seed=k, step=n)` ⇒ mismo estado para cualquier cliente. Dos visitantes en el mismo paso
-ven exactamente lo mismo (condición clave para Render).
+Mismo log ⇒ mismo estado para cualquier cliente. La aleatoriedad (`seed`) no afecta al
+guion (se conserva por uniformidad del contrato).
 
 ## 7. Criterios de aceptación
 
-- CA1 · Estado inicial (`step=0`): `running=None`, `event_index=0`, todos en NEW.
-- CA2 · Replay completo (`step=14`): los 3 procesos terminan; `applied=true` en todos.
-- CA3 · `step=15` ⇒ `SimulationError`.
-- CA4 · `step=n` responde lo mismo en dos peticiones distintas (stateless).
-- CA5 · La página carga con 200 y el estado embebido es coherente.
+- CA1 · Estado inicial (`events: []`): sin procesos, `running=None`.
+- CA2 · `create` añade un proceso en NEW; `pids` lo refleja.
+- CA3 · Secuencia admit ➜ dispatch ➜ exit deja el proceso en TERMINATED.
+- CA4 · `interrupt` sobre el RUNNING lo devuelve a READY y libera la CPU.
+- CA5 · Una transición inválida responde `applied=false` con `reason` y no altera el log.
+- CA6 · La página carga con 200 y el estado embebido es coherente.
 
 ## 8. UI asociada
 
 - Plantilla: `processes/templates/processes/index.html` (extiende `base.html`).
-- JS: `static/processes/js/main.js` (render con animación FLIP + panel de estado).
-- Controles: `Siguiente paso`, `Auto/Pausa`, `Reiniciar`; panel de texto de estado.
+- JS: `static/processes/js/main.js` (render FLIP + panel de estado + log en el cliente).
+- Controles: **Añadir proceso**, **Reiniciar**, selector de proceso objetivo y botones de
+  transición (Admitir, Despachar, Interrumpir, E/S espera, E/S fin, Salir). Clic en un
+  token también lo selecciona.
