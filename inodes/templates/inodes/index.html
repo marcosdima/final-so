@@ -1,0 +1,283 @@
+{% extends "base.html" %}
+{% load static %}
+{% block header_title %}Simulador de Inodos y Disco Físico{% endblock %}
+{% block header_subtitle %}Sistemas Operativos · Traducción de Posiciones Lógicas a Bloques en Disco{% endblock %}
+
+{% block title %}Simulador de Inodos - Disco Físico (100 Bloques) | SO{% endblock %}
+
+{% block header_badges %}
+  <span class="badge info"><i data-lucide="layers" class="icon-inline"></i> 100 Bloques</span>
+  <span class="badge mode-tag"><i data-lucide="moon" class="icon-inline"></i> Dark Mode</span>
+{% endblock %}
+
+{% block extra_js %}
+  <script type="module" src="{% static 'inodes/js/simulator.js' %}"></script>
+{% endblock %}
+
+{% block content %}
+<!--
+  Disposición:
+    [fila 1, cols 1-3]  Barra de ejemplos (compacta)
+    [fila 2, col 1]     Inodo
+    [fila 2, cols 2-3]  Disco físico
+    [cols 4, filas 1-2] Simulación (arriba) + Tablas de índices (abajo)
+-->
+<div class="simulation-grid">
+
+  <!-- Barra de ejemplos: fila superior, sobre el inodo y el disco -->
+  <section class="examples-bar">
+    <div class="examples-row">
+      <span class="examples-label"><i data-lucide="flask-conical"></i> Ejemplos</span>
+      <div class="presets-container">
+        <button type="button" class="btn-preset" data-pos="1" title="Posición 1 (Directo [0])">Directo 1</button>
+        <button type="button" class="btn-preset active" data-pos="10" title="Posición 10 (Directo [9])">Directo 10</button>
+        <button type="button" class="btn-preset" data-pos="14" title="Posición 14 (Ind. Simple)">Simple 14</button>
+        <button type="button" class="btn-preset" data-pos="18" title="Posición 18 (Ind. Doble)">Doble 18</button>
+        <button type="button" class="btn-preset" data-pos="26" title="Posición 26 (Ind. Triple)">Triple 26</button>
+      </div>
+      <button type="button" class="btn-randomize" id="btn-randomize" title="Aleatorizar direcciones" aria-label="Aleatorizar direcciones" onclick="location.href='?seed='+Math.floor(Math.random()*1e9)">
+        <i data-lucide="shuffle"></i>
+      </button>
+    </div>
+
+    <div class="examples-row">
+      <div class="input-group">
+        <label for="logical-pos-input">Posición lógica (base 1)</label>
+        <div class="input-wrapper input-wrapper--compact">
+          <i data-lucide="hash" class="input-icon-prefix"></i>
+          <input
+            type="number"
+            id="logical-pos-input"
+            name="pos"
+            value="{{ initial_pos }}"
+            min="1"
+            max="{{ structure.total_logical_positions }}"
+            step="1"
+            placeholder="Ej: 10"
+            required
+          >
+        </div>
+      </div>
+
+      <div class="formal-calc-badge" id="formal-calc-badge">
+        <i data-lucide="binary" class="badge-icon"></i>
+        <span id="formal-calc-text">{{ initial_resolution.formal_calc }}</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Inodo: ocupa las dos filas de la primera columna -->
+  <div class="inode-column">
+    <div class="inode-card" id="inode-card">
+      <div class="inode-header">
+        <div class="inode-header-title">
+          <i data-lucide="file-code" class="inode-icon"></i>
+          <span class="inode-id">INODO #{{ structure.inode_id }}</span>
+        </div>
+        <span class="inode-meta">{{ structure.mode }} | UID: {{ structure.uid }}</span>
+      </div>
+
+      <div class="inode-pointers-list">
+        {% for ptr in structure.direct_pointers %}
+          <div 
+            class="pointer-item direct {% if ptr.position == initial_pos %}active-pointer{% endif %}"
+            id="ptr-direct-{{ ptr.index }}"
+            data-pointer-type="direct"
+            data-index="{{ ptr.index }}"
+            data-position="{{ ptr.position }}"
+            data-target-block="{{ ptr.block }}"
+            title="Posición {{ ptr.position }} ➜ Bloque Físico #{{ ptr.block|stringformat:'02d' }}"
+          >
+            <span class="ptr-title">Directo [{{ ptr.index }}]</span>
+            <span class="ptr-arrow"><i data-lucide="arrow-right" class="icon-arrow"></i></span>
+            <span class="ptr-target">Bloque #{{ ptr.block|stringformat:"02d" }}</span>
+          </div>
+        {% endfor %}
+
+        <div 
+          class="pointer-item indirect-1 {% if initial_resolution.route_type == 'INDIRECT_SIMPLE' %}active-pointer{% endif %}"
+          id="ptr-indirect-1"
+          data-pointer-type="indirect-1"
+          data-target-block="{{ structure.indirect_simple.block_id }}"
+          title="Posiciones 13 a 16 ➜ Bloque de Índice #{{ structure.indirect_simple.block_id }}"
+        >
+          <span class="ptr-title">Ind. Simple</span>
+          <span class="ptr-arrow"><i data-lucide="arrow-right" class="icon-arrow"></i></span>
+          <span class="ptr-target">Bloque #{{ structure.indirect_simple.block_id|stringformat:"02d" }}</span>
+        </div>
+
+        <div 
+          class="pointer-item indirect-2 {% if initial_resolution.route_type == 'INDIRECT_DOUBLE' %}active-pointer{% endif %}"
+          id="ptr-indirect-2"
+          data-pointer-type="indirect-2"
+          data-target-block="{{ structure.indirect_double.block_id }}"
+          title="Posiciones 17 a 24 ➜ Bloque de Índice N1 #{{ structure.indirect_double.block_id }}"
+        >
+          <span class="ptr-title">Ind. Doble</span>
+          <span class="ptr-arrow"><i data-lucide="arrow-right" class="icon-arrow"></i></span>
+          <span class="ptr-target">Bloque #{{ structure.indirect_double.block_id|stringformat:"02d" }}</span>
+        </div>
+
+        <div 
+          class="pointer-item indirect-3 {% if initial_resolution.route_type == 'INDIRECT_TRIPLE' %}active-pointer{% endif %}"
+          id="ptr-indirect-3"
+          data-pointer-type="indirect-3"
+          data-target-block="{{ structure.indirect_triple.block_id }}"
+          title="Posiciones 25.. ➜ Bloque de Índice Triple #{{ structure.indirect_triple.block_id }}"
+        >
+          <span class="ptr-title">Ind. Triple</span>
+          <span class="ptr-arrow"><i data-lucide="arrow-right" class="icon-arrow"></i></span>
+          <span class="ptr-target">Bloque #{{ structure.indirect_triple.block_id|stringformat:"02d" }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Disco físico: ocupa el bloque central 2x2 -->
+  <div class="disk-column">
+    <div class="disk-panel">
+      <div class="disk-header-bar">
+        <div class="disk-header-info">
+          <i data-lucide="disc" class="icon-disk"></i>
+          <div>
+            <h3>Disco Físico (100 Bloques: #00 al #99)</h3>
+            <p>Representación de los 100 bloques del medio de almacenamiento.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="disk-legend-bar">
+        <span class="legend-chip legend-direct">Directo</span>
+        <span class="legend-chip legend-simple">Índice Simple</span>
+        <span class="legend-chip legend-simple-data">Dato Ind. Simple</span>
+        <span class="legend-chip legend-double">Índice Doble</span>
+        <span class="legend-chip legend-triple">Índice Triple</span>
+        <span class="legend-chip legend-free">Libre</span>
+      </div>
+
+      <div class="disk-matrix-100" id="disk-matrix-100">
+        {% for block in structure.disk_blocks %}
+          <div 
+            class="matrix-cell cell-role-{{ block.role }} {% if block.id == initial_resolution.physical_block %}cell-active-target{% endif %}"
+            id="disk-cell-{{ block.id }}"
+            data-block-id="{{ block.id }}"
+            data-block-role="{{ block.role }}"
+            data-block-desc="{{ block.desc }}"
+            title="{{ block.desc }}"
+          >
+            <span class="cell-id">#{{ block.id|stringformat:"02d" }}</span>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Columna derecha: simulación (arriba) + tablas de índices (abajo) -->
+  <div class="side-column">
+
+  <!-- Simulación: fila superior de la columna derecha -->
+  <div class="controller-column">
+    <section class="flow-controller-card">
+      <div class="step-controller-wrapper">
+        <div class="step-toolbar">
+          <div class="step-indicator">
+            <span class="pulse-indicator"></span>
+            <div class="step-indicator-text">
+              <strong id="step-counter-text">Paso 1 de {{ initial_resolution.steps|length }}</strong>
+              <span class="step-progress-label" id="step-progress-label">Recorrido de acceso a disco</span>
+            </div>
+          </div>
+          <button type="button" id="btn-step-reset" class="btn btn-ctrl btn-icon" title="Reiniciar al inicio">
+            <i data-lucide="rotate-ccw"></i>
+          </button>
+        </div>
+
+        <div class="step-progress-track" aria-hidden="true">
+          <div class="step-progress-fill" id="step-progress-fill"></div>
+        </div>
+
+        <div class="carousel" id="step-carousel" tabindex="0">
+          <div class="carousel-stage">
+            <div class="carousel-viewport">
+              <div class="carousel-track" id="carousel-track">
+                {% for step in initial_resolution.steps %}
+                <article class="carousel-card{% if forloop.first %} active{% endif %}" data-index="{{ forloop.counter0 }}">
+                  <div class="step-header-row">
+                    <span class="step-badge-tag">PASO {{ forloop.counter }}</span>
+                    <h3 class="step-card-title">{{ step.title }}</h3>
+                  </div>
+                  <p class="step-body-text">{{ step.explanation }}</p>
+                </article>
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+          <div class="carousel-controls">
+            <button type="button" class="carousel-nav prev" id="carousel-prev" aria-label="Paso anterior">
+              <i data-lucide="chevron-left"></i>
+            </button>
+            <div class="carousel-dots" id="carousel-dots" role="tablist" aria-label="Pasos de la simulación">
+              {% for step in initial_resolution.steps %}
+              <button type="button" class="dot{% if forloop.first %} active{% endif %}" data-index="{{ forloop.counter0 }}" role="tab" aria-label="Ir al paso {{ forloop.counter }}"></button>
+              {% endfor %}
+            </div>
+            <button type="button" class="carousel-nav next" id="carousel-next" aria-label="Paso siguiente">
+              <i data-lucide="chevron-right"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Tablas de índices: fila inferior de la columna derecha.
+       Se muestra la que corresponda a la ruta actual. -->
+  <div class="index-panel-host" id="index-panel-host">
+    <div class="index-panel-empty {% if initial_resolution.route_type == 'DIRECT' %}active{% endif %}" id="index-panel-empty">
+      <i data-lucide="check-circle"></i>
+      <p>Acceso directo: no se necesita tabla de índices.</p>
+    </div>
+
+    <section class="index-panel index-panel-simple {% if initial_resolution.route_type == 'INDIRECT_SIMPLE' %}active{% endif %}" id="indirect-simple-panel">
+      <div class="index-panel-header">
+        <i data-lucide="folder-tree"></i>
+        <h4>Índice Simple (Bloque #{{ structure.indirect_simple.block_id }})</h4>
+      </div>
+      <div class="index-panel-subtitle">Bloque de índice simple y bloques de datos</div>
+      <div class="index-panel-body">
+        <div class="simple-node-row index-node-row" id="simple-node-parent" data-target-block="{{ structure.indirect_simple.block_id }}">
+          <span>Índice Simple</span>
+          <strong>➜ Datos</strong>
+        </div>
+        {% for entry in structure.indirect_simple.entries %}
+          <div class="simple-entry-item" id="simple-entry-{{ entry.index }}" data-index="{{ entry.index }}" data-position="{{ entry.position }}" data-target-block="{{ entry.block }}">
+            <span>Entrada [{{ entry.index }}]</span>
+            <strong>➜ Bloque #{{ entry.block|stringformat:"02d" }}</strong>
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="index-panel index-panel-double {% if initial_resolution.route_type == 'INDIRECT_DOUBLE' %}active{% endif %}" id="indirect-double-panel">
+      <div class="index-panel-header">
+        <i data-lucide="layers"></i>
+        <h4>Índice Doble (N1 Bloque #{{ structure.indirect_double.block_id }})</h4>
+      </div>
+      <div class="index-panel-subtitle">Subtablas N2 y bloques de datos</div>
+      <div class="index-panel-body" id="double-panel-body"></div>
+    </section>
+
+    <section class="index-panel index-panel-triple {% if initial_resolution.route_type == 'INDIRECT_TRIPLE' %}active{% endif %}" id="indirect-triple-panel">
+      <div class="index-panel-header">
+        <i data-lucide="boxes"></i>
+        <h4>Índice Triple (N1 Bloque #{{ structure.indirect_triple.block_id }})</h4>
+      </div>
+      <div class="index-panel-subtitle">Cadena N1 ➜ N2 ➜ N3 ➜ Datos</div>
+      <div class="index-panel-body" id="triple-panel-body"></div>
+    </section>
+  </div>
+  </div>
+</div>
+
+{{ structure|json_script:"simulation-data" }}
+{% endblock %}

@@ -1,0 +1,190 @@
+/* ==========================================================================
+   PROCESOS - CICLO DE VIDA
+   ========================================================================== */
+
+.process-sim {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.process-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 16px 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-main);
+  border-radius: 14px;
+}
+
+.process-toolbar-info h3 {
+  margin: 0 0 4px;
+  color: var(--text-title);
+}
+
+.process-toolbar-info p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.process-toolbar-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.proc-diagram-wrap {
+  position: relative;
+  background: radial-gradient(circle at top, #1e293b, #0b0f19);
+  border: 1px solid var(--border-main);
+  border-radius: 16px;
+  padding: 24px 16px 32px;
+  min-height: 360px;
+}
+
+.proc-arrows {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.proc-diagram {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: auto auto;
+  gap: 24px 12px;
+  align-items: start;
+}
+
+#node-NEW { grid-column: 1; grid-row: 1; }
+#node-READY { grid-column: 2; grid-row: 1; }
+#node-RUNNING { grid-column: 3; grid-row: 1; }
+#node-TERMINATED { grid-column: 4; grid-row: 1; }
+#node-WAITING { grid-column: 3; grid-row: 2; }
+
+.proc-node {
+  background: linear-gradient(145deg, #1a2234, #111827);
+  border: 2px solid var(--border-light);
+  border-radius: 14px;
+  padding: 12px;
+  min-height: 110px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+}
+
+.proc-node.active {
+  border-color: var(--active-blue);
+  box-shadow: 0 0 18px var(--active-blue);
+}
+
+.proc-node-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  color: var(--text-title);
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-main);
+}
+
+.proc-node-header svg {
+  width: 1em;
+  height: 1em;
+}
+
+.proc-node-waiting {
+  background: linear-gradient(145deg, #1f293d, #111827);
+}
+
+.proc-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 44px;
+  align-content: flex-start;
+}
+
+.proc-token {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 52px;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #0284c7, #2563eb);
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35);
+  will-change: transform, opacity;
+  transition: background 0.2s, box-shadow 0.2s;
+}
+
+.proc-token.proc-running {
+  background: linear-gradient(135deg, #059669, #10b981);
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+}
+
+.proc-token.proc-waiting {
+  background: linear-gradient(135deg, #d97706, #f59e0b);
+  box-shadow: 0 6px 16px rgba(245, 158, 11, 0.4);
+}
+
+.proc-token.proc-terminated {
+  background: linear-gradient(135deg, #7c3aed, #a855f7);
+  box-shadow: 0 6px 16px rgba(168, 85, 247, 0.4);
+  opacity: 0.85;
+}
+
+.proc-legend {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.process-status {
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: var(--bg-card-secondary);
+  color: var(--text-main);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  min-height: 20px;
+}
+
+.proc-state-panel pre {
+  margin: 0;
+  padding: 14px;
+  background: var(--bg-card-secondary);
+  border: 1px solid var(--border-main);
+  border-radius: 10px;
+  color: var(--text-main);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 768px) {
+  .proc-diagram {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  #node-NEW { grid-column: 1; grid-row: 1; }
+  #node-READY { grid-column: 2; grid-row: 1; }
+  #node-RUNNING { grid-column: 1; grid-row: 2; }
+  #node-TERMINATED { grid-column: 2; grid-row: 2; }
+  #node-WAITING { grid-column: 1; grid-row: 3; }
+  .proc-arrows { display: none; }
+}

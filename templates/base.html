@@ -1,0 +1,67 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Simulador de Sistemas Operativos{% endblock %}</title>
+  <!-- Fuentes -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Estilos base -->
+  <link rel="stylesheet" href="{% static 'css/base/variables.css' %}">
+  <link rel="stylesheet" href="{% static 'css/base/reset.css' %}">
+  <link rel="stylesheet" href="{% static 'css/base/base.css' %}">
+  <link rel="stylesheet" href="{% static 'css/layout/header.css' %}">
+  <link rel="stylesheet" href="{% static 'css/layout/nav.css' %}">
+  <link rel="stylesheet" href="{% static 'css/layout/footer.css' %}">
+  <link rel="stylesheet" href="{% static 'css/layout/grid.css' %}">
+  <link rel="stylesheet" href="{% static 'css/components/badges.css' %}">
+  <link rel="stylesheet" href="{% static 'css/components/buttons.css' %}">
+  <link rel="stylesheet" href="{% static 'css/components/cards.css' %}">
+  <link rel="stylesheet" href="{% static 'css/components/forms.css' %}">
+  <link rel="stylesheet" href="{% static 'css/components/index-tables.css' %}">
+  <link rel="stylesheet" href="{% static 'css/pages/landing.css' %}">
+  <link rel="stylesheet" href="{% static 'css/pages/inodes.css' %}">
+  <link rel="stylesheet" href="{% static 'css/pages/processes.css' %}">
+  {% block extra_head %}{% endblock %}
+</head>
+<body class="dark-theme">
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand">
+        <div class="brand-icon-wrap">
+          <i data-lucide="hard-drive" class="icon-brand"></i>
+        </div>
+        <div>
+          <h1>{% block header_title %}Simulador de Sistemas Operativos{% endblock %}</h1>
+          <p class="subtitle">{% block header_subtitle %}Explora conceptos de sistemas operativos de forma interactiva{% endblock %}</p>
+        </div>
+      </div>
+      <div class="header-badges">
+        {% block header_badges %}{% endblock %}
+      </div>
+    </div>
+    <c-nav></c-nav>
+  </header>
+
+  <main class="main-content">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="app-footer">
+    <p>Simulador de Sistemas Operativos · Proyecto SO</p>
+  </footer>
+
+  <!-- Scripts base -->
+  <script>
+    if (window.lucide) {
+      window.lucide.createIcons();
+    }
+  </script>
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

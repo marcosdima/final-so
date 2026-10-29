@@ -1,0 +1,58 @@
+/* ==========================================================================
+   HEADER
+   ========================================================================== */
+
+.app-header {
+  background: linear-gradient(135deg, #111827, #1e293b);
+  border-bottom: 1px solid var(--border-main);
+}
+
+.header-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 14px 24px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-icon-wrap {
+  background: #1e3a8a;
+  color: #60a5fa;
+  width: 42px;
+  height: 42px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-brand {
+  width: 24px;
+  height: 24px;
+}
+
+.brand h1 {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--text-title);
+}
+
+.subtitle {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.header-badges {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}

@@ -1,0 +1,27 @@
+/* ==========================================================================
+   NAVEGACIÓN
+   ========================================================================== */
+
+.app-nav {
+  display: flex;
+  gap: 16px;
+  padding: 10px 20px;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(6px);
+}
+
+.app-nav a {
+  color: var(--text-main);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  transition: background 0.15s;
+}
+
+.app-nav a:hover {
+  background: var(--bg-hover);
+  color: var(--active-blue);
+}

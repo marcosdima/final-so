@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Simulador de Sistemas Operativos{% endblock %}
+{% block content %}
+<c-hero title="Simulador de Sistemas Operativos" subtitle="Explora inodos y ciclo de vida de procesos de forma interactiva.">
+  <p>Selecciona una simulación para comenzar.</p>
+</c-hero>
+<section class="sim-grid">
+  {% for sim in simulations %}
+  <c-sim-card title="{{ sim.title }}" description="{{ sim.description }}" url="{% url sim.url_name %}"></c-sim-card>
+  {% empty %}
+  <p>No hay simulaciones registradas todavía.</p>
+  {% endfor %}
+</section>
+{% endblock %}

@@ -1,0 +1,81 @@
+/* ==========================================================================
+   FORMULARIOS
+   ========================================================================== */
+
+.input-inline-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.input-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.input-group label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-title);
+}
+
+.input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-icon-prefix {
+  position: absolute;
+  left: 10px;
+  color: var(--text-muted);
+  width: 16px;
+  height: 16px;
+}
+
+.input-wrapper input {
+  padding: 8px 105px 8px 34px;
+  font-size: 1.05rem;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  background: var(--bg-body);
+  border: 2px solid var(--border-light);
+  border-radius: 6px;
+  color: #38bdf8;
+  width: 220px;
+}
+
+.input-wrapper input:focus {
+  outline: none;
+  border-color: #38bdf8;
+  background: #000000;
+}
+
+.input-tag {
+  position: absolute;
+  right: 10px;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.formal-calc-badge {
+  background: var(--bg-card-secondary);
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  padding: 8px 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: #93c5fd;
+}
+
+.badge-icon {
+  color: #60a5fa;
+}

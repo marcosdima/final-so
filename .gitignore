@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+
+# Django
+*.sqlite3
+db.sqlite3
+staticfiles/
+
+# Artifacts
+ast
+*.ps
+*.eps
+
+# Tooling
+.ruff_cache/

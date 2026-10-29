@@ -1,0 +1,17 @@
+[project]
+name = "inodo-simulator"
+version = "0.1.0"
+description = "Simulador didáctico de búsqueda de bloques físicos mediante Inodos en Django"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "django>=6.1.2",
+    "django-cotton>=2.8.0",
+    "gunicorn>=23.0.0",
+    "whitenoise>=6.8.0",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.17.3",
+]

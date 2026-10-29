@@ -1,0 +1,102 @@
+/* ==========================================================================
+   TABLAS DE ÍNDICES (Simple / Doble / Triple) - paneles integrados
+   ========================================================================== */
+
+.simple-entries-list,
+.double-entries-list,
+.triple-entries-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.simple-entry-item,
+.simple-node-row,
+.double-item-row,
+.triple-item-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-light);
+  border-radius: 4px;
+  padding: 5px 8px;
+  font-size: 0.76rem;
+  font-family: var(--font-mono);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.simple-entry-item:hover,
+.simple-node-row:hover {
+  background: var(--simple-bg);
+  color: #ffffff;
+}
+
+.double-item-row:hover {
+  background: var(--double-bg);
+  color: #ffffff;
+}
+
+.triple-item-row:hover {
+  background: var(--triple-bg);
+  color: #ffffff;
+}
+
+.simple-entry-item.active-entry {
+  background: #d97706 !important;
+  color: #ffffff !important;
+  font-weight: 800;
+}
+
+.double-item-row.active-entry {
+  background: #7c3aed !important;
+  color: #ffffff !important;
+  font-weight: 800;
+}
+
+.triple-item-row.active-entry {
+  background: #db2777 !important;
+  color: #ffffff !important;
+  font-weight: 800;
+}
+
+/* Nodos de índice intermedios (N1, N2, N3) */
+.index-node-row {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px dashed var(--border-light) !important;
+  font-style: italic;
+  opacity: 0.9;
+}
+
+.index-node-row:hover {
+  background: var(--bg-hover) !important;
+  color: var(--active-blue) !important;
+  border-color: var(--active-blue) !important;
+}
+
+.index-node-row.active-entry {
+  background: var(--active-blue-bg) !important;
+  color: #ffffff !important;
+  border-color: var(--active-blue) !important;
+  font-weight: 800;
+  font-style: normal;
+}
+
+/* Subtablas del índice doble */
+.double-subtable-box {
+  background: var(--bg-card-secondary);
+  border: 1px solid var(--double-border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  margin-bottom: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.subtable-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--double-color);
+}

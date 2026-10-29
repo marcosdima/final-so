@@ -1,0 +1,21 @@
+# Render BluePrint: define el servicio web del simulador de SO.
+# Ver docs/deploy.md para el paso a paso manual equivalente.
+services:
+  - type: web
+    name: simulador-so
+    runtime: python
+    plan: free
+    buildCommand: >
+      uv sync &&
+      uv run python manage.py migrate --noinput &&
+      uv run python manage.py collectstatic --noinput
+    startCommand: uv run gunicorn config.wsgi:application
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12"
+      - key: DEBUG
+        value: "False"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ALLOWED_HOSTS
+        value: ".onrender.com"

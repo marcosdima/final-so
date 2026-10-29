@@ -1,0 +1,32 @@
+/* ==========================================================================
+   CARDS
+   ========================================================================== */
+
+.control-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-main);
+  border-radius: 10px;
+  padding: 16px 20px;
+}
+
+.sim-card {
+  background: linear-gradient(145deg, #111827, #1a2234);
+  border: 1px solid var(--border-main);
+  border-radius: 14px;
+  padding: 20px;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.sim-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+}
+
+.sim-card h3 {
+  color: var(--text-title);
+  margin-bottom: 6px;
+}
+
+.sim-card p {
+  color: var(--text-muted);
+}

@@ -1,0 +1,42 @@
+/* ==========================================================================
+   BADGES
+   ========================================================================== */
+
+.badge {
+  padding: 5px 12px;
+  border-radius: 9999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-card-secondary);
+  color: var(--text-muted);
+  border: 1px solid var(--border-main);
+}
+
+.badge.mode-tag {
+  color: #38bdf8;
+  border-color: #0369a1;
+}
+
+.legend-chip {
+  padding: 2px 8px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.legend-direct { background: var(--direct-bg); color: var(--direct-color); border: 1px solid var(--direct-border); }
+.legend-simple { background: var(--simple-bg); color: var(--simple-color); border: 1px solid var(--simple-border); }
+.legend-simple-data { background: #431407; color: #fb923c; border: 1px solid #c2410c; }
+.legend-double { background: var(--double-bg); color: var(--double-color); border: 1px solid var(--double-border); }
+.legend-triple { background: var(--triple-bg); color: var(--triple-color); border: 1px solid var(--triple-border); }
+.legend-free { background: var(--bg-card-secondary); color: var(--text-muted); border: 1px dashed var(--border-light); }
+
+.legend-running { background: var(--direct-bg); color: var(--direct-color); }
+.legend-waiting { background: var(--simple-bg); color: var(--simple-color); }
+.legend-terminated { background: var(--triple-bg); color: var(--triple-color); }
