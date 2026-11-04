@@ -330,12 +330,11 @@ class InodeSimulation:
             "steps": [
                 {
                     "step_num": 1,
-                    "title": "Conversión a Índice de Bloque Lógico (desde 0)",
-                    "formula": f"N = Posición − 1 = {logical_position} − 1 = {n}",
+                    "title": "Conversión a Índice de Bloque Lógico",
                     "explanation": (
-                        f"Para la posición lógica {logical_position}, se resta 1 dado que "
-                        f"las estructuras internas del sistema operativo numeran los bloques "
-                        f"y punteros comenzando desde 0, obteniendo el índice N = {n}."
+                        f"Para la posición lógica {logical_position}, se resta 1 porque las "
+                        f"tablas internas del sistema operativo comienzan a numerarse desde 0: "
+                        f"N = {logical_position} − 1 = {n}."
                     ),
                     "highlight_dom": f"ptr-direct-{n}",
                     "disk_block": phys_block,
@@ -343,11 +342,10 @@ class InodeSimulation:
                 {
                     "step_num": 2,
                     "title": "Verificación de Rango Directo",
-                    "formula": f"0 ≤ N < {self.direct_count}   ⇒   0 ≤ {n} < {self.direct_count}  ➜  Directo [{n}]",
                     "explanation": (
-                        f"Como N = {n} es menor que la cantidad de punteros directos del inodo "
-                        f"({self.direct_count}), el bloque se resuelve sin tablas de índices "
-                        f"consultando la entrada Directo [{n}]."
+                        f"El inodo dispone de {self.direct_count} punteros directos (índices "
+                        f"0 al {self.direct_count - 1}). Como N = {n} < {self.direct_count}, "
+                        f"se consulta directamente la entrada Directo [{n}] del inodo."
                     ),
                     "highlight_dom": f"ptr-direct-{n}",
                     "disk_block": phys_block,
@@ -355,10 +353,9 @@ class InodeSimulation:
                 {
                     "step_num": 3,
                     "title": "Acceso al Bloque Físico en Disco",
-                    "formula": f"Inodo.Directo[{n}]  ➜  Bloque Físico #{phys_block:02d}  (1 acceso a disco)",
                     "explanation": (
-                        f"El puntero Directo [{n}] contiene directamente la dirección física "
-                        f"#{phys_block:02d}. Se accede al bloque en disco en una sola operación de lectura."
+                        f"La entrada Directo [{n}] apunta al Bloque Físico #{phys_block:02d}. "
+                        "Se accede a los datos en disco en una única lectura."
                     ),
                     "highlight_dom": f"disk-cell-{phys_block}",
                     "disk_block": phys_block,
@@ -372,7 +369,6 @@ class InodeSimulation:
         rel_idx = n - self.direct_count
         phys_block = self.indirect_simple_entries[rel_idx]
         idx_block = self.indirect_simple_block_id
-        limit_simple = self.direct_count + self.simple_count
         return {
             "logical_position": logical_position,
             "logical_block_index": n,
@@ -409,15 +405,12 @@ class InodeSimulation:
             "steps": [
                 {
                     "step_num": 1,
-                    "title": "Índice Lógico (desde 0) y Rango Indirecto Simple",
-                    "formula": (
-                        f"N = {logical_position} − 1 = {n}   │   "
-                        f"{self.direct_count} ≤ {n} < {limit_simple}"
-                    ),
+                    "title": "Conversión a Índice Lógico y Desborde Directo",
                     "explanation": (
-                        f"Se resta 1 a la posición {logical_position} porque los índices internos "
-                        f"comienzan desde 0 (N = {n}). Al superar los {self.direct_count} punteros "
-                        f"directos (0..{self.direct_count - 1}), se emplea el Puntero Indirecto Simple."
+                        f"Se resta 1 a la posición {logical_position} porque los índices "
+                        f"internos comienzan desde 0: N = {logical_position} − 1 = {n}. Como "
+                        f"N = {n} supera los {self.direct_count} punteros directos (0..{self.direct_count - 1}), "
+                        "se recurre al Puntero Indirecto Simple."
                     ),
                     "highlight_dom": "ptr-indirect-1",
                     "disk_block": idx_block,
@@ -425,29 +418,22 @@ class InodeSimulation:
                 {
                     "step_num": 2,
                     "title": "Lectura de la Tabla de Índice Simple",
-                    "formula": (
-                        f"Inodo.Ind_Simple  ➜  Bloque de Índice #{idx_block:02d} "
-                        f"(k = {self.ptrs_per_index_block} entradas)"
-                    ),
                     "explanation": (
-                        f"El puntero Indirecto Simple del inodo direcciona al Bloque Físico "
-                        f"#{idx_block:02d}, que contiene una tabla con {self.ptrs_per_index_block} "
-                        "punteros a bloques de datos."
+                        f"El Puntero Indirecto Simple del inodo apunta al Bloque Físico "
+                        f"#{idx_block:02d} en disco, que almacena una tabla con "
+                        f"{self.ptrs_per_index_block} entradas (índices 0 al {self.ptrs_per_index_block - 1})."
                     ),
                     "highlight_dom": "simple-node-parent",
                     "disk_block": idx_block,
                 },
                 {
                     "step_num": 3,
-                    "title": "Cálculo del Desplazamiento Relativo (d)",
-                    "formula": (
-                        f"d = N − Directos = {n} − {self.direct_count} = Entrada [{rel_idx}]  "
-                        f"➜  Bloque #{phys_block:02d}"
-                    ),
+                    "title": "Cálculo de la Entrada en la Tabla",
                     "explanation": (
-                        f"Se restan los {self.direct_count} bloques directos anteriores para "
-                        f"obtener el desplazamiento d = {rel_idx}. En la tabla #{idx_block:02d}, "
-                        f"la Entrada [{rel_idx}] almacena el bloque físico #{phys_block:02d}."
+                        f"Se restan los {self.direct_count} bloques directos previos para "
+                        f"obtener la posición dentro de la tabla: Entrada = {n} − {self.direct_count} "
+                        f"= [{rel_idx}]. En el bloque #{idx_block:02d}, la Entrada [{rel_idx}] "
+                        f"contiene la dirección #{phys_block:02d}."
                     ),
                     "highlight_dom": f"simple-entry-{rel_idx}",
                     "disk_block": idx_block,
@@ -455,13 +441,9 @@ class InodeSimulation:
                 {
                     "step_num": 4,
                     "title": "Acceso al Bloque Físico de Datos",
-                    "formula": (
-                        f"Tabla(#{idx_block:02d})[{rel_idx}]  ➜  Bloque de Datos #{phys_block:02d} "
-                        "(2 accesos a disco)"
-                    ),
                     "explanation": (
-                        f"Con la dirección resuelta en la tabla de índice simple, se accede al "
-                        f"Bloque Físico #{phys_block:02d} en disco para leer el contenido."
+                        f"Obtenida la dirección en la tabla de índice simple, se realiza el "
+                        f"segundo acceso a disco para leer el Bloque Físico #{phys_block:02d}."
                     ),
                     "highlight_dom": f"disk-cell-{phys_block}",
                     "disk_block": phys_block,
@@ -520,45 +502,35 @@ class InodeSimulation:
             "steps": [
                 {
                     "step_num": 1,
-                    "title": "Índice Lógico (desde 0) y Desplazamiento Doble (d)",
-                    "formula": (
-                        f"N = {logical_position} − 1 = {n}   ⇒   "
-                        f"d = N − ({self.direct_count} + {self.simple_count}) = {n} − {dbl_base} = {rel_double}"
-                    ),
+                    "title": "Desplazamiento dentro del Indirecto Doble",
                     "explanation": (
-                        f"Partiendo del índice N = {n} (numerado desde 0), se descuentan los "
-                        f"bloques directos ({self.direct_count}) y simples ({self.simple_count}) "
-                        f"previos para obtener el desplazamiento d = {rel_double} en el árbol doble."
+                        f"Primero se pasa a numeración desde 0: N = {logical_position} − 1 = {n}. "
+                        f"Luego se restan los {self.direct_count} bloques directos y los "
+                        f"{self.simple_count} del indirecto simple ({dbl_base} en total): "
+                        f"d = {n} − {dbl_base} = {rel_double}."
                     ),
                     "highlight_dom": "double-node-n1",
                     "disk_block": n1_block_id,
                 },
                 {
                     "step_num": 2,
-                    "title": "Índice de Nivel 1 (División Entera)",
-                    "formula": (
-                        f"i₁ = ⌊d ÷ k⌋ = ⌊{rel_double} ÷ {k}⌋ = Entrada [{l1_idx}]  "
-                        f"➜  Subtabla N2 #{l2_block_id:02d}"
-                    ),
+                    "title": "Selección de Subtabla en Nivel 1 (División Entera)",
                     "explanation": (
-                        f"Como cada subtabla N2 contiene k = {k} entradas, el cociente entero "
-                        f"⌊{rel_double} ÷ {k}⌋ = {l1_idx} indica qué entrada consultar en el "
-                        f"bloque N1 (#{n1_block_id:02d}), la cual apunta a la Subtabla N2 en el bloque #{l2_block_id:02d}."
+                        f"Cada subtabla de Nivel 2 abarca {k} bloques. Dividiendo el "
+                        f"desplazamiento d = {rel_double} entre {k}, el cociente entero es "
+                        f"{rel_double} ÷ {k} = [{l1_idx}]. En la tabla N1 (#{n1_block_id:02d}), "
+                        f"la entrada [{l1_idx}] apunta a la Subtabla N2 en el bloque #{l2_block_id:02d}."
                     ),
                     "highlight_dom": f"double-node-n2-{l1_idx}",
                     "disk_block": l2_block_id,
                 },
                 {
                     "step_num": 3,
-                    "title": "Índice de Nivel 2 (Resto / Módulo)",
-                    "formula": (
-                        f"i₂ = d mod k = {rel_double} mod {k} = Entrada [{l1_idx}][{l2_idx}]  "
-                        f"➜  Bloque #{phys_block:02d}"
-                    ),
+                    "title": "Posición dentro de la Subtabla N2 (Resto)",
                     "explanation": (
-                        f"El resto de la división ({rel_double} mod {k} = {l2_idx}) determina la "
-                        f"posición dentro de la Subtabla N2 (#{l2_block_id:02d}). La Entrada "
-                        f"[{l1_idx}][{l2_idx}] contiene la dirección física #{phys_block:02d}."
+                        f"El resto de la división ({rel_double} mod {k} = [{l2_idx}]) indica "
+                        f"qué fila leer dentro de la Subtabla N2 (#{l2_block_id:02d}). "
+                        f"La Entrada [{l1_idx}][{l2_idx}] contiene el bloque físico #{phys_block:02d}."
                     ),
                     "highlight_dom": f"double-entry-{logical_position}",
                     "disk_block": l2_block_id,
@@ -566,13 +538,10 @@ class InodeSimulation:
                 {
                     "step_num": 4,
                     "title": "Acceso al Bloque Físico de Datos",
-                    "formula": (
-                        f"N1(#{n1_block_id:02d}) ➜ N2(#{l2_block_id:02d}) ➜ "
-                        f"Bloque de Datos #{phys_block:02d} (3 accesos)"
-                    ),
                     "explanation": (
-                        f"Tras consultar el índice primario N1 y la subtabla secundaria N2, "
-                        f"se realiza el tercer acceso a disco para leer el Bloque Físico #{phys_block:02d}."
+                        f"Tras recorrer el bloque N1 (#{n1_block_id:02d}) y la subtabla N2 "
+                        f"(#{l2_block_id:02d}), el tercer acceso a disco lee el Bloque Físico "
+                        f"de Datos #{phys_block:02d}."
                     ),
                     "highlight_dom": f"disk-cell-{phys_block}",
                     "disk_block": phys_block,
@@ -639,62 +608,45 @@ class InodeSimulation:
             "steps": [
                 {
                     "step_num": 1,
-                    "title": "Índice Lógico (desde 0) y Desplazamiento Triple (d)",
-                    "formula": (
-                        f"N = {logical_position} − 1 = {n}   ⇒   "
-                        f"d = N − ({self.direct_count} + {self.simple_count} + {self.double_count}) "
-                        f"= {n} − {triple_base} = {rel_triple}"
-                    ),
+                    "title": "Desplazamiento dentro del Indirecto Triple",
                     "explanation": (
-                        f"Convertida la posición al índice N = {n} (numerado desde 0), se "
-                        f"descuentan los bloques directos ({self.direct_count}), simples "
-                        f"({self.simple_count}) y dobles ({self.double_count}) previos para "
-                        f"obtener el desplazamiento d = {rel_triple}."
+                        f"Se pasa a numeración desde 0 (N = {logical_position} − 1 = {n}) y "
+                        f"se restan los bloques cubiertos antes del triple ({self.direct_count} "
+                        f"directos + {self.simple_count} simples + {self.double_count} dobles = "
+                        f"{triple_base}): d = {n} − {triple_base} = {rel_triple}."
                     ),
                     "highlight_dom": "ptr-indirect-3",
                     "disk_block": l1_id,
                 },
                 {
                     "step_num": 2,
-                    "title": "Índice de Nivel 1 (i₁ en Tabla N1)",
-                    "formula": (
-                        f"i₁ = ⌊d ÷ k²⌋ = ⌊{rel_triple} ÷ {k2}⌋ = Entrada N1 [{i1}]  "
-                        f"➜  Bloque N2 #{l2_id:02d}"
-                    ),
+                    "title": "Tabla de Nivel 1 (Bloque N1)",
                     "explanation": (
-                        f"Cada entrada de Nivel 1 direcciona k² = {k}² = {k2} bloques de datos. "
-                        f"En el bloque N1 (#{l1_id:02d}), el cociente i₁ = {i1} selecciona el "
-                        f"puntero hacia el bloque de Nivel 2 #{l2_id:02d}."
+                        f"Cada entrada de Nivel 1 abarca {k} × {k} = {k2} bloques. El cociente "
+                        f"entero {rel_triple} ÷ {k2} = [{i1}] selecciona la entrada [{i1}] del "
+                        f"bloque N1 (#{l1_id:02d}), que apunta al bloque N2 #{l2_id:02d}."
                     ),
                     "highlight_dom": "triple-node-n1",
                     "disk_block": l1_id,
                 },
                 {
                     "step_num": 3,
-                    "title": "Índice de Nivel 2 (i₂ en Tabla N2)",
-                    "formula": (
-                        f"i₂ = ⌊(d mod {k2}) ÷ k⌋ = ⌊{rel_triple % k2} ÷ {k}⌋ = Entrada N2 [{i2}]  "
-                        f"➜  Bloque N3 #{l3_id:02d}"
-                    ),
+                    "title": "Tabla de Nivel 2 (Bloque N2)",
                     "explanation": (
-                        f"Cada entrada de Nivel 2 direcciona k = {k} bloques. En el bloque N2 "
-                        f"(#{l2_id:02d}), el índice i₂ = {i2} conduce al bloque de índice de "
-                        f"tercer nivel N3 #{l3_id:02d}."
+                        f"Cada entrada de Nivel 2 abarca {k} bloques. El cociente entero "
+                        f"{rel_triple % k2} ÷ {k} = [{i2}] dentro del bloque N2 (#{l2_id:02d}) "
+                        f"dirige hacia el bloque de tercer nivel N3 #{l3_id:02d}."
                     ),
                     "highlight_dom": "triple-node-n2",
                     "disk_block": l2_id,
                 },
                 {
                     "step_num": 4,
-                    "title": "Índice de Nivel 3 (i₃ en Tabla N3)",
-                    "formula": (
-                        f"i₃ = d mod k = {rel_triple} mod {k} = Entrada N3 [{idx}]  "
-                        f"➜  Bloque #{phys_block:02d}"
-                    ),
+                    "title": "Tabla de Nivel 3 (Bloque N3)",
                     "explanation": (
-                        f"El resto de la división ({rel_triple} mod {k} = {idx}) determina la "
-                        f"Entrada [{idx}] dentro de la tabla N3 (#{l3_id:02d}), donde se obtiene "
-                        f"la dirección física del bloque de datos #{phys_block:02d}."
+                        f"El resto de la división ({rel_triple} mod {k} = [{idx}]) indica la "
+                        f"Entrada [{idx}] en la tabla N3 (#{l3_id:02d}), donde se encuentra "
+                        f"la dirección física #{phys_block:02d}."
                     ),
                     "highlight_dom": f"triple-entry-{logical_position}",
                     "disk_block": l3_id,
@@ -702,13 +654,10 @@ class InodeSimulation:
                 {
                     "step_num": 5,
                     "title": "Acceso al Bloque Físico de Datos",
-                    "formula": (
-                        f"N1(#{l1_id:02d}) ➜ N2(#{l2_id:02d}) ➜ N3(#{l3_id:02d}) ➜ "
-                        f"Dato #{phys_block:02d} (4 accesos)"
-                    ),
                     "explanation": (
-                        f"Resueltos los tres niveles de tablas de índices, el cuarto acceso a "
-                        f"disco lee finalmente el Bloque Físico de Datos #{phys_block:02d}."
+                        f"Recorrida la cadena N1 (#{l1_id:02d}) ➜ N2 (#{l2_id:02d}) ➜ "
+                        f"N3 (#{l3_id:02d}), el cuarto acceso a disco lee el Bloque Físico "
+                        f"de Datos #{phys_block:02d}."
                     ),
                     "highlight_dom": f"disk-cell-{phys_block}",
                     "disk_block": phys_block,

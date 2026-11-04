@@ -44,9 +44,8 @@ ALLOWED_HOSTS = [
     for h in os.environ.get("ALLOWED_HOSTS", "*").split(",")
     if h.strip()
 ]
-if render_host := os.environ.get("RENDER_EXTERNAL_HOSTNAME"):
-    if render_host not in ALLOWED_HOSTS:
-        ALLOWED_HOSTS.append(render_host)
+if (render_host := os.environ.get("RENDER_EXTERNAL_HOSTNAME")) and render_host not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(render_host)
 
 if not DEBUG:
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")

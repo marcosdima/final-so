@@ -348,15 +348,11 @@ function buildStepCards(resolution) {
     const card = document.createElement("article");
     card.className = "carousel-card";
     card.dataset.index = String(i);
-    const formulaHtml = step.formula
-      ? `<div class="step-formula-box"><code>${utils.escapeHtml(step.formula)}</code></div>`
-      : "";
     card.innerHTML = `
       <div class="step-header-row">
         <span class="step-badge-tag">PASO ${i + 1}</span>
         <h3 class="step-card-title">${utils.escapeHtml(step.title)}</h3>
       </div>
-      ${formulaHtml}
       <p class="step-body-text">${utils.escapeHtml(step.explanation)}</p>
     `;
     carouselTrack.appendChild(card);
