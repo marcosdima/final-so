@@ -215,10 +215,14 @@ function render(s) {
     });
   }
 
-  // 1. Posición actual (FIRST)
+  // 1. Posición visual actual en pantalla (FIRST), incluso si estaba en mitad de transición
   const firstRects = new Map();
   tokens.forEach((el, pid) => {
     firstRects.set(pid, el.getBoundingClientRect());
+  });
+  tokens.forEach((el) => {
+    el.style.transition = 'none';
+    el.style.transform = '';
   });
 
   // 2. Nodo activo (quién está en CPU)
@@ -718,6 +722,12 @@ function getActiveScript() {
 let stepIndex = 0;
 let playing = false;
 let timer = null;
+let isStepAnimating = false;
+let currentStepRunId = 0;
+
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 function setNarration(tag, text, isError = false) {
   if (narrationTag) {
@@ -753,31 +763,50 @@ function setPlaying(on) {
 function updateDemoStepButtons() {
   const script = getActiveScript();
   if (btnPrevStep) {
-    btnPrevStep.disabled = stepIndex <= 0;
+    btnPrevStep.disabled = isStepAnimating || stepIndex <= 0;
   }
   if (btnStep) {
-    btnStep.disabled = stepIndex >= script.length;
+    btnStep.disabled = isStepAnimating || stepIndex >= script.length;
   }
 }
 
 async function runStep() {
+  if (isStepAnimating) return false;
   const script = getActiveScript();
   if (stepIndex >= script.length) {
     finishDemo();
     updateDemoStepButtons();
     return false;
   }
+  const runId = ++currentStepRunId;
+  isStepAnimating = true;
   const step = script[stepIndex++];
-  for (const ev of step.events) {
-    const result = await applyEvent(ev);
-    if (result && !result.applied) {
-      setNarration('Error en el guion', `El evento ${ev.type} no se aplicó: ${result.reason}`, true);
+  updateDemoStepButtons();
+
+  highlightArrow(step.transition || null);
+  setNarration(step.tag, step.text);
+
+  for (let i = 0; i < step.events.length; i++) {
+    if (runId !== currentStepRunId) {
+      isStepAnimating = false;
       updateDemoStepButtons();
       return false;
     }
+    const ev = step.events[i];
+    const result = await applyEvent(ev);
+    if (result && !result.applied) {
+      setNarration('Error en el guion', `El evento ${ev.type} no se aplicó: ${result.reason}`, true);
+      isStepAnimating = false;
+      updateDemoStepButtons();
+      return false;
+    }
+    const hasMoreEvents = i < step.events.length - 1;
+    if (hasMoreEvents && ev.type !== 'set_algorithm') {
+      await delay(520);
+    }
   }
-  highlightArrow(step.transition || null);
-  setNarration(step.tag, step.text);
+
+  isStepAnimating = false;
   updateDemoStepButtons();
 
   if (stepIndex >= script.length) {
@@ -787,7 +816,8 @@ async function runStep() {
 }
 
 async function runPrevStep() {
-  if (stepIndex <= 0) return false;
+  if (isStepAnimating || stepIndex <= 0) return false;
+  currentStepRunId++;
   setPlaying(false);
   clearTimeout(timer);
   stepIndex -= 1;
@@ -834,6 +864,8 @@ function finishDemo() {
 }
 
 async function resetDemo() {
+  currentStepRunId++;
+  isStepAnimating = false;
   clearTimeout(timer);
   setPlaying(false);
   highlightArrow(null);
@@ -874,6 +906,8 @@ async function addManualProcess() {
 
 async function changeSchedulerAlgorithm(algo) {
   currentAlgorithm = algo;
+  currentStepRunId++;
+  isStepAnimating = false;
   clearTimeout(timer);
   setPlaying(false);
   highlightArrow(null);
