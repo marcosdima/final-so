@@ -199,20 +199,20 @@
         <div class="theory-tab-content active" id="tab-content-fcfs">
           <h4>First-Come, First-Served (FCFS / FIFO)</h4>
           <span class="algo-badge">No Preemptivo</span>
-          <p>Los procesos se atienden estrictamente por orden de llegada a la cola de <code>READY</code>. Cuando un proceso obtiene la CPU, no la suelta hasta que termina o pide una operación de Entrada/Salida.</p>
+          <p>Los procesos se atienden estrictamente por orden de llegada a la cola de <code>READY</code>. Cuando un proceso obtiene la CPU, conserva el procesador hasta finalizar su ráfaga o solicitar una operación de Entrada/Salida.</p>
           <div class="theory-pros-cons">
-            <div class="pro"><strong>Ventaja:</strong> Algoritmo muy simple y sin overhead de planificación.</div>
-            <div class="con"><strong>Desventaja:</strong> Efecto Convoy: un proceso con una ráfaga muy larga hace esperar a muchos procesos cortos detrás suyo, elevando el tiempo medio de espera.</div>
+            <div class="pro"><strong>Ventaja:</strong> Implementación sencilla mediante una cola FIFO sin sobrecarga de planificación.</div>
+            <div class="con"><strong>Desventaja:</strong> Efecto Convoy: un proceso intensivo en CPU retrasa la ejecución de los procesos cortos encolados posteriormente, incrementando el tiempo medio de espera.</div>
           </div>
         </div>
 
         <div class="theory-tab-content is-hidden" id="tab-content-rr">
           <h4>Round Robin (Turno Rotatorio)</h4>
           <span class="algo-badge">Preemptivo por Temporizador</span>
-          <p>Cada proceso recibe una porción fija de tiempo de procesador denominada <strong>Quantum (q)</strong>. Cuando expira el quantum, el reloj del sistema genera una interrupción y el proceso vuelve al final de la cola de <code>READY</code>.</p>
+          <p>Cada proceso recibe una fracción fija de tiempo de procesador denominada <strong>Quantum (q)</strong>. Al expirar el quantum, el temporizador del sistema genera una interrupción y el proceso es reubicado al final de la cola de <code>READY</code>.</p>
           <div class="theory-pros-cons">
-            <div class="pro"><strong>Ventaja:</strong> Excelente tiempo de respuesta para sistemas interactivos y de tiempo compartido. Sin inanición (starvation).</div>
-            <div class="con"><strong>Desventaja:</strong> Si el quantum es muy chico, el costo del cambio de contexto (overhead de context switch) degrada el rendimiento. Si es muy grande, degenera en FCFS.</div>
+            <div class="pro"><strong>Ventaja:</strong> Garantiza un tiempo de respuesta acotado para sistemas interactivos y de tiempo compartido, evitando la inanición (starvation).</div>
+            <div class="con"><strong>Desventaja:</strong> Si el quantum es demasiado reducido, la sobrecarga por cambios de contexto (context switch) degrada el rendimiento; si es excesivamente amplio, su comportamiento converge a FCFS.</div>
           </div>
         </div>
 
