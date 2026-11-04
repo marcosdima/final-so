@@ -124,6 +124,55 @@ class ProcessLifecycleTests(TestCase):
         with self.assertRaises(SimulationError):
             ProcessLifecycleSimulation(seed=1, events=[{"type": "dispatch", "pid": 1}])
 
+    def test_scheduler_fcfs_order(self):
+        # Crear y admitir P1, P2
+        apply(
+            self.sim,
+            {"type": "create", "pid": 1},
+            {"type": "create", "pid": 2},
+            {"type": "admit", "pid": 1},
+            {"type": "admit", "pid": 2},
+        )
+        state = self.sim.get_state()
+        self.assertEqual(state["next_scheduled"], 1)
+        self.assertEqual(state["ready_queue"], [1, 2])
+        # Despachar sin especificar PID despacha al primero de la cola (FCFS)
+        res = apply(self.sim, {"type": "dispatch"})
+        self.assertTrue(res["applied"])
+        self.assertEqual(self.sim.get_state()["running"], 1)
+
+    def test_scheduler_priority_order(self):
+        # Crear P1 con prioridad baja (3) y P2 con prioridad alta (1)
+        apply(
+            self.sim,
+            {"type": "set_algorithm", "payload": {"algorithm": "PRIORITY"}},
+            {"type": "create", "pid": 1, "priority": 3},
+            {"type": "create", "pid": 2, "priority": 1},
+            {"type": "admit", "pid": 1},
+            {"type": "admit", "pid": 2},
+        )
+        state = self.sim.get_state()
+        # En PRIORITY, P2 debe estar primero en la cola por tener prioridad 1
+        self.assertEqual(state["ready_queue"], [2, 1])
+        self.assertEqual(state["next_scheduled"], 2)
+
+    def test_round_robin_quantum_expiration_via_tick(self):
+        apply(
+            self.sim,
+            {"type": "set_algorithm", "payload": {"algorithm": "RR", "quantum": 2}},
+            {"type": "create", "pid": 1, "burst_time": 4},
+            {"type": "admit", "pid": 1},
+            {"type": "dispatch", "pid": 1},
+        )
+        # 1er tick
+        apply(self.sim, {"type": "tick"})
+        self.assertEqual(self.sim.get_state()["running"], 1)
+        # 2do tick (alcanza quantum=2): se interrumpe y vuelve a READY
+        apply(self.sim, {"type": "tick"})
+        state = self.sim.get_state()
+        self.assertIsNone(state["running"])
+        self.assertEqual(state["states"]["1"], "READY")
+
 
 class ProcessApiTests(TestCase):
     def setUp(self):

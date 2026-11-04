@@ -1,97 +1,250 @@
 {% extends "base.html" %}
 {% load static %}
 {% block header_title %}Ciclo de vida de procesos{% endblock %}
-{% block header_subtitle %}Estados y transiciones de procesos{% endblock %}
+{% block header_subtitle %}Estados, transiciones y laboratorio interactivo{% endblock %}
 {% block title %}Ciclo de vida de procesos{% endblock %}
 {% block extra_js %}
 {% endblock %}
 {% block content %}
 <section class="process-sim">
-  <div class="process-toolbar">
-    <div class="process-toolbar-info">
-      <h3>Ciclo de vida de procesos</h3>
-      <p>Crea procesos a mano y muévelos entre estados con las transiciones. Los rectángulos se desplazan al aplicar cada evento.</p>
+  <!-- 1. Panel de Narración / Feedback en la parte superior (Lectura Cómoda y Centrada) -->
+  <div class="proc-narration" id="proc-narration" aria-live="polite">
+    <div class="proc-narration-head">
+      <div class="narration-title-wrap">
+        <i data-lucide="message-square-text"></i>
+        <span class="proc-narration-tag" id="narration-tag">Inicio</span>
+      </div>
+      <button type="button" class="btn-theory-info" id="btn-open-theory" title="Ver guía de políticas del planificador">
+        <i data-lucide="book-open"></i> Guía del Planificador
+      </button>
     </div>
-    <div class="process-toolbar-actions">
-      <button type="button" id="btn-add" class="btn btn-ctrl"><i data-lucide="plus"></i> Añadir proceso</button>
-      <button type="button" id="btn-reset" class="btn btn-ctrl"><i data-lucide="rotate-ccw"></i> Reiniciar</button>
+    <p class="proc-narration-text" id="narration-text">Simulación lista. Pulsa «Paso» para iniciar la demostración paso a paso.</p>
+  </div>
+
+  <!-- 2. Componente del Gráfico con Diagrama Centrado -->
+  <div class="proc-diagram-card">
+    <div class="proc-diagram-wrap">
+      <svg class="proc-arrows" aria-hidden="true">
+        <defs>
+          <marker id="proc-arrowhead" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+            <path d="M0,0 L6,3 L0,6 Z" fill="var(--active-blue)" />
+          </marker>
+        </defs>
+      </svg>
+
+      <div class="proc-diagram" id="proc-diagram">
+        <div class="proc-node" id="node-NEW">
+          <div class="proc-node-header"><i data-lucide="inbox"></i> New</div>
+          <div class="proc-list" id="list-NEW"></div>
+        </div>
+        <div class="proc-node" id="node-READY">
+          <div class="proc-node-header"><i data-lucide="list"></i> Ready</div>
+          <div class="proc-list" id="list-READY"></div>
+        </div>
+        <div class="proc-node" id="node-RUNNING">
+          <div class="proc-node-header"><i data-lucide="cpu"></i> Running</div>
+          <div class="proc-list" id="list-RUNNING"></div>
+        </div>
+        <div class="proc-node" id="node-TERMINATED">
+          <div class="proc-node-header"><i data-lucide="check-circle"></i> Terminated</div>
+          <div class="proc-list" id="list-TERMINATED"></div>
+        </div>
+        <div class="proc-node proc-node-waiting" id="node-WAITING">
+          <div class="proc-node-header"><i data-lucide="clock"></i> Waiting</div>
+          <div class="proc-list" id="list-WAITING"></div>
+        </div>
+      </div>
+
+      <!-- Inspector Flotante / Tooltip de PCB (Anclado al proceso seleccionado) -->
+      <div class="pcb-inspector-panel is-hidden" id="pcb-inspector">
+        <div class="inspector-header">
+          <div class="inspector-title">
+            <i data-lucide="file-text"></i>
+            <span>PCB · <strong id="pcb-pid-title">P1</strong></span>
+          </div>
+          <button type="button" class="btn-inspector-close" id="btn-close-pcb" title="Cerrar inspector">&times;</button>
+        </div>
+        <div class="inspector-body">
+          <div class="pcb-field"><span class="pcb-key">Estado:</span> <span class="pcb-val badge-state" id="pcb-state-val">READY</span></div>
+          <div class="pcb-field"><span class="pcb-key">Prioridad:</span> <span class="pcb-val" id="pcb-priority-val">1</span></div>
+          <div class="pcb-field"><span class="pcb-key">Ráfaga total:</span> <span class="pcb-val" id="pcb-burst-val">4</span></div>
+          <div class="pcb-field"><span class="pcb-key">Tiempo restante:</span> <span class="pcb-val" id="pcb-remaining-val">4</span></div>
+          <div class="pcb-field"><span class="pcb-key">Quantum consumido:</span> <span class="pcb-val" id="pcb-quantum-val">0</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. Barra de Controles en la Base del Gráfico (Ordenada y Estructurada) -->
+    <div class="proc-chart-footer">
+      <!-- Selector de Planificador (Abajo, parte de la simulación) -->
+      <div class="footer-scheduler-bar">
+        <div class="sched-algo-group">
+          <span class="sched-title"><i data-lucide="settings-2"></i> Algoritmo:</span>
+          <div class="sched-algo-buttons">
+            <button type="button" class="btn-algo-chip active" data-algo="FCFS" title="Planificador First-Come, First-Served">FCFS</button>
+            <button type="button" class="btn-algo-chip" data-algo="RR" title="Planificador Round Robin con Quantum">Round Robin</button>
+            <button type="button" class="btn-algo-chip" data-algo="PRIORITY" title="Planificador por Prioridades">Prioridades</button>
+          </div>
+        </div>
+
+        <!-- Conmutador de Modo (Demostración vs Modo Manual) -->
+        <div class="process-mode-switch">
+          <button type="button" id="tab-demo" class="btn btn-tab active" data-mode="demo">
+            <i data-lucide="play-circle"></i> Demostración
+          </button>
+          <button type="button" id="tab-manual" class="btn btn-tab" data-mode="manual">
+            <i data-lucide="sliders"></i> Modo Manual
+          </button>
+        </div>
+      </div>
+
+      <!-- Fila de Controles Dinámicos (Demo vs Manual) -->
+      <div class="footer-ctrl-row">
+        <!-- Controles de Demostración (Por defecto en Pausa) -->
+        <div class="footer-ctrl-panel" id="controls-demo">
+          <div class="ctrl-btn-row">
+            <button type="button" id="btn-step" class="btn btn-ctrl btn-highlight" title="Avanzar un paso en el guion">
+              <i data-lucide="skip-forward"></i> Paso a paso
+            </button>
+            <button type="button" id="btn-play" class="btn btn-ctrl btn-play is-paused">
+              <i data-lucide="pause" class="icon-pause"></i>
+              <i data-lucide="play" class="icon-play"></i>
+              <span id="btn-play-label">Reproducir</span>
+            </button>
+            <button type="button" id="btn-reset-demo" class="btn btn-ctrl" title="Volver al inicio"><i data-lucide="rotate-ccw"></i> Reiniciar</button>
+          </div>
+
+          <!-- Selector de Velocidad Moderno -->
+          <div class="speed-segmented-control" role="group" aria-label="Velocidad de reproducción">
+            <span class="speed-label"><i data-lucide="gauge"></i> Vel:</span>
+            <button type="button" class="btn-speed-pill" data-speed="4500">0.5x</button>
+            <button type="button" class="btn-speed-pill active" data-speed="3000">1x</button>
+            <button type="button" class="btn-speed-pill" data-speed="1600">2x</button>
+          </div>
+        </div>
+
+        <!-- Controles del Modo Manual -->
+        <div class="footer-ctrl-panel is-hidden" id="controls-manual">
+          <div class="manual-actions-cluster">
+            <div class="ctrl-btn-row">
+              <button type="button" id="btn-add-proc" class="btn btn-primary" title="Crear un nuevo proceso">
+                <i data-lucide="plus"></i> Crear Proceso
+              </button>
+              <button type="button" id="btn-tick" class="btn btn-ctrl btn-tick" title="Avanzar 1 ciclo de reloj en la CPU">
+                <i data-lucide="timer"></i> Tick CPU (+1)
+              </button>
+              <span class="clock-badge">CPU: <strong id="clock-display">0</strong></span>
+              <button type="button" id="btn-reset-manual" class="btn btn-ctrl" title="Vaciar simulación">
+                <i data-lucide="trash-2"></i> Limpiar
+              </button>
+            </div>
+
+            <!-- Botones de Transición -->
+            <div class="manual-transitions-row">
+              <span class="trans-label">Transición:</span>
+              <div class="process-action-buttons">
+                <button type="button" class="btn btn-act" data-action="admit" title="Admitir (NEW → READY)"><i data-lucide="log-in"></i> Admitir</button>
+                <button type="button" class="btn btn-act" data-action="dispatch" title="Despachar a la CPU según algoritmo activo"><i data-lucide="cpu"></i> Despachar</button>
+                <button type="button" class="btn btn-act" data-action="interrupt" title="Interrumpir (RUNNING → READY)"><i data-lucide="zap"></i> Interrumpir</button>
+                <button type="button" class="btn btn-act" data-action="io_wait" title="Espera de E/S (RUNNING → WAITING)"><i data-lucide="hourglass"></i> E/S espera</button>
+                <button type="button" class="btn btn-act" data-action="io_complete" title="Fin de E/S (WAITING → READY)"><i data-lucide="check"></i> E/S fin</button>
+                <button type="button" class="btn btn-act" data-action="exit" title="Finalizar proceso (RUNNING → TERMINATED)"><i data-lucide="log-out"></i> Salir</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
-  <!-- Barra de transiciones: aplicar al proceso seleccionado -->
-  <div class="process-actions-bar">
-    <label for="proc-select">Proceso objetivo:</label>
-    <select id="proc-select" class="proc-select">
-      <option value="">— selecciona —</option>
-    </select>
-    <div class="process-action-buttons">
-      <button type="button" class="btn btn-act" data-action="admit" title="Admitir (NEW → READY)"><i data-lucide="log-in"></i> Admitir</button>
-      <button type="button" class="btn btn-act" data-action="dispatch" title="Despachar a la CPU (READY → RUNNING)"><i data-lucide="cpu"></i> Despachar</button>
-      <button type="button" class="btn btn-act" data-action="interrupt" title="Interrumpir (RUNNING → READY)"><i data-lucide="zap"></i> Interrumpir</button>
-      <button type="button" class="btn btn-act" data-action="io_wait" title="Espera de E/S (RUNNING → WAITING)"><i data-lucide="hourglass"></i> E/S espera</button>
-      <button type="button" class="btn btn-act" data-action="io_complete" title="Fin de E/S (WAITING → READY)"><i data-lucide="check"></i> E/S fin</button>
-      <button type="button" class="btn btn-act" data-action="exit" title="Salir (RUNNING → TERMINATED)"><i data-lucide="log-out"></i> Salir</button>
+  <!-- Modal Flotante de Teoría (Políticas del planificador) -->
+  <div class="theory-modal-backdrop is-hidden" id="theory-modal">
+    <div class="theory-modal-card" role="dialog" aria-labelledby="modal-title" aria-modal="true">
+      <div class="theory-modal-header">
+        <div class="modal-title-group">
+          <i data-lucide="book-open"></i>
+          <h3 id="modal-title">Políticas del Planificador de Corto Plazo</h3>
+        </div>
+        <button type="button" class="btn-modal-close" id="btn-close-modal" aria-label="Cerrar ventana">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+
+      <div class="theory-modal-tabs">
+        <button type="button" class="btn-modal-tab active" data-tab="fcfs">FCFS / FIFO</button>
+        <button type="button" class="btn-modal-tab" data-tab="rr">Round Robin</button>
+        <button type="button" class="btn-modal-tab" data-tab="priority">Prioridades</button>
+        <button type="button" class="btn-modal-tab" data-tab="sjf">SJF / SRTF</button>
+        <button type="button" class="btn-modal-tab" data-tab="mlfq">Colas Multinivel</button>
+      </div>
+
+      <div class="theory-modal-body">
+        <div class="theory-tab-content active" id="tab-content-fcfs">
+          <h4>First-Come, First-Served (FCFS / FIFO)</h4>
+          <span class="algo-badge">No Preemptivo</span>
+          <p>Los procesos se atienden estrictamente por orden de llegada a la cola de <code>READY</code>. Cuando un proceso obtiene la CPU, no la suelta hasta que termina o pide una operación de Entrada/Salida.</p>
+          <div class="theory-pros-cons">
+            <div class="pro"><strong>Ventaja:</strong> Algoritmo muy simple y sin overhead de planificación.</div>
+            <div class="con"><strong>Desventaja:</strong> Efecto Convoy: un proceso con una ráfaga muy larga hace esperar a muchos procesos cortos detrás suyo, elevando el tiempo medio de espera.</div>
+          </div>
+        </div>
+
+        <div class="theory-tab-content is-hidden" id="tab-content-rr">
+          <h4>Round Robin (Turno Rotatorio)</h4>
+          <span class="algo-badge">Preemptivo por Temporizador</span>
+          <p>Cada proceso recibe una porción fija de tiempo de procesador denominada <strong>Quantum (q)</strong>. Cuando expira el quantum, el reloj del sistema genera una interrupción y el proceso vuelve al final de la cola de <code>READY</code>.</p>
+          <div class="theory-pros-cons">
+            <div class="pro"><strong>Ventaja:</strong> Excelente tiempo de respuesta para sistemas interactivos y de tiempo compartido. Sin inanición (starvation).</div>
+            <div class="con"><strong>Desventaja:</strong> Si el quantum es muy chico, el costo del cambio de contexto (overhead de context switch) degrada el rendimiento. Si es muy grande, degenera en FCFS.</div>
+          </div>
+        </div>
+
+        <div class="theory-tab-content is-hidden" id="tab-content-priority">
+          <h4>Planificación por Prioridades</h4>
+          <span class="algo-badge">Preemptivo o No Preemptivo</span>
+          <p>A cada proceso se le asigna un valor numérico de prioridad. La CPU se asigna al proceso de mayor prioridad disponible (en este simulador, 1 es la máxima prioridad y 5 la mínima).</p>
+          <div class="theory-pros-cons">
+            <div class="pro"><strong>Ventaja:</strong> Permite priorizar tareas críticas del sistema operativo o procesos de tiempo real sobre tareas en segundo plano.</div>
+            <div class="con"><strong>Desventaja:</strong> Inanición (Starvation): los procesos de baja prioridad pueden esperar indefinidamente si siguen llegando procesos prioritarios. Se soluciona con <em>envejecimiento (aging)</em>.</div>
+          </div>
+        </div>
+
+        <div class="theory-tab-content is-hidden" id="tab-content-sjf">
+          <h4>Shortest Job First / Shortest Remaining Time First</h4>
+          <span class="algo-badge">Óptimo en tiempo de espera</span>
+          <p>Selecciona el proceso con la ráfaga de CPU más corta. En su versión preemptiva (SRTF), si llega un proceso nuevo con menor tiempo restante que el que está corriendo, lo desaloja.</p>
+          <div class="theory-pros-cons">
+            <div class="pro"><strong>Ventaja:</strong> Es demostrablemente óptimo para minimizar el tiempo de espera promedio.</div>
+            <div class="con"><strong>Desventaja:</strong> En la práctica es imposible conocer con exactitud la duración de la próxima ráfaga de CPU; se debe estimar mediante promedios exponenciales.</div>
+          </div>
+        </div>
+
+        <div class="theory-tab-content is-hidden" id="tab-content-mlfq">
+          <h4>Colas Multinivel con Retroalimentación (MLFQ)</h4>
+          <span class="algo-badge">Híbrido Avanzado</span>
+          <p>Divide la cola de listos en múltiples colas con distintas prioridades y cuantums. Un proceso que agota su quantum desciende de nivel de prioridad (penalización a procesos orientados a CPU), mientras que los procesos interactivos se mantienen en niveles altos.</p>
+          <div class="theory-pros-cons">
+            <div class="pro"><strong>Ventaja:</strong> Aprende dinámicamente el comportamiento del proceso sin necesidad de estimaciones a priori. Es la base de los planificadores de Linux y Windows.</div>
+            <div class="con"><strong>Desventaja:</strong> Es el más complejo de configurar y calibrar.</div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
-  <div class="proc-diagram-wrap">
-    <svg class="proc-arrows" viewBox="0 0 100 80" preserveAspectRatio="none" aria-hidden="true">
-      <defs>
-        <marker id="proc-arrowhead" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
-          <path d="M0,0 L6,3 L0,6 Z" fill="var(--active-blue)" />
-        </marker>
-      </defs>
-      <!-- New -> Ready -->
-      <line x1="20" y1="22" x2="30" y2="22" stroke="var(--active-blue)" stroke-width="0.6" marker-end="url(#proc-arrowhead)" />
-      <!-- Ready -> Running -->
-      <line x1="45" y1="22" x2="55" y2="22" stroke="var(--active-blue)" stroke-width="0.6" marker-end="url(#proc-arrowhead)" />
-      <!-- Running -> Terminated -->
-      <line x1="70" y1="22" x2="80" y2="22" stroke="var(--active-blue)" stroke-width="0.6" marker-end="url(#proc-arrowhead)" />
-      <!-- Running -> Waiting -->
-      <line x1="62.5" y1="30" x2="62.5" y2="58" stroke="var(--active-blue)" stroke-width="0.6" marker-end="url(#proc-arrowhead)" />
-      <!-- Waiting -> Ready -->
-      <path d="M 55 68 C 40 60, 38 40, 40 30" fill="none" stroke="var(--active-blue)" stroke-width="0.6" marker-end="url(#proc-arrowhead)" />
-    </svg>
-
-    <div class="proc-diagram" id="proc-diagram">
-      <div class="proc-node" id="node-NEW">
-        <div class="proc-node-header"><i data-lucide="inbox"></i> New</div>
-        <div class="proc-list" id="list-NEW"></div>
+  <!-- Dialog Modal de Advertencias / Motivo de Rechazo del SO -->
+  <dialog id="so-alert-dialog" class="so-alert-dialog">
+    <div class="so-dialog-card">
+      <div class="so-dialog-head">
+        <i data-lucide="alert-triangle"></i>
+        <h4 id="so-dialog-title">Acción Rechazada por el SO</h4>
       </div>
-      <div class="proc-node" id="node-READY">
-        <div class="proc-node-header"><i data-lucide="list"></i> Ready</div>
-        <div class="proc-list" id="list-READY"></div>
-      </div>
-      <div class="proc-node" id="node-RUNNING">
-        <div class="proc-node-header"><i data-lucide="cpu"></i> Running</div>
-        <div class="proc-list" id="list-RUNNING"></div>
-      </div>
-      <div class="proc-node" id="node-TERMINATED">
-        <div class="proc-node-header"><i data-lucide="check-circle"></i> Terminated</div>
-        <div class="proc-list" id="list-TERMINATED"></div>
-      </div>
-      <div class="proc-node proc-node-waiting" id="node-WAITING">
-        <div class="proc-node-header"><i data-lucide="clock"></i> Waiting</div>
-        <div class="proc-list" id="list-WAITING"></div>
+      <p id="so-dialog-msg" class="so-dialog-msg">Motivo del rechazo.</p>
+      <div class="so-dialog-footer">
+        <button type="button" id="btn-close-so-dialog" class="btn btn-ctrl">Entendido</button>
       </div>
     </div>
-  </div>
-
-  <div class="proc-legend">
-    <span class="legend-chip legend-running">Running</span>
-    <span class="legend-chip legend-waiting">Waiting</span>
-    <span class="legend-chip legend-terminated">Terminated</span>
-  </div>
-
-  <div class="process-status" id="process-status"></div>
-
-  <section class="control-panel">
-    <div class="control-card">
-      <div class="proc-state-panel">
-        <pre id="proc-state"></pre>
-      </div>
-    </div>
-  </section>
+  </dialog>
 
   {{ structure|json_script:"process-data" }}
   <script type="module" src="{% static 'processes/js/main.js' %}"></script>

@@ -6,9 +6,12 @@
 ## 1. Descripción
 
 Anima la **máquina de estados de un proceso** (NEW ➜ READY ➜ RUNNING ➜ WAITING /
-TERMINATED) con **control manual**: el usuario crea procesos a mano y dispara
-transiciones (admitir, despachar, interrumpir, espera/fin de E/S, salir) sobre el
-proceso que elija. La UI desplaza los tokens entre contenedores (animación FLIP).
+TERMINATED) con una **demostración automática**: la UI reproduce un guion preset
+(3 procesos que recorren todas las transiciones) paso a paso y narra cada movimiento
+con texto explicativo. El backend conserva el modelo manual (eventos
+`{type, pid}`) y la UI lo usa a través de la misma API stateless. La UI desplaza
+los tokens entre contenedores (animación FLIP) y resalta la flecha de la transición
+en curso.
 
 ## 2. Estados
 
@@ -103,7 +106,15 @@ guion (se conserva por uniformidad del contrato).
 ## 8. UI asociada
 
 - Plantilla: `processes/templates/processes/index.html` (extiende `base.html`).
-- JS: `static/processes/js/main.js` (render FLIP + panel de estado + log en el cliente).
-- Controles: **Añadir proceso**, **Reiniciar**, selector de proceso objetivo y botones de
-  transición (Admitir, Despachar, Interrumpir, E/S espera, E/S fin, Salir). Clic en un
-  token también lo selecciona.
+- JS: `static/processes/js/main.js` (render FLIP + guion de demo + narrador).
+- **Demostración automática**: un guion preset en el cliente (`SCRIPT`) crea P1, P2 y P3
+  y los lleva por todas las transiciones (incluida una espera de E/S y una interrupción
+  por quantum). Cada paso aplica sus eventos vía la acción `apply` (mismo camino que el
+  control manual) y muestra un texto explicativo en el panel narrador, resaltando la
+  flecha de la transición.
+- Controles: **Reproducir/Pausar**, **Paso** (avanza un paso con reproducción pausada),
+  **Reiniciar** (aplica `events: []` y vuelve a empezar) y **Velocidad**
+  (lenta/normal/rápida). La demo arranca sola al cargar la página.
+- Referencia didáctica: sección «Algoritmos de selección de procesos» (FCFS, SJF/SRTF,
+  Round Robin, Prioridad, MLFQ); la cola de la demo se comporta como FCFS con
+  preemptividad tipo Round Robin.

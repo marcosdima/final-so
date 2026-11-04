@@ -1,49 +1,130 @@
 /* ==========================================================================
-   PROCESOS - CICLO DE VIDA
+   PROCESOS - CICLO DE VIDA Y PLANIFICADOR (LAYOUT CENTRADO Y LIMPIO)
    ========================================================================== */
 
 .process-sim {
   display: flex;
   flex-direction: column;
   gap: 18px;
+  position: relative;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
 }
 
-.process-toolbar {
+/* --------------------------------------------------------------------------
+   1. NARRADOR SUPERIOR (FEEDBACK DIDÁCTICO CENTRADO)
+   -------------------------------------------------------------------------- */
+.proc-narration {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
-  padding: 16px 20px;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 24px;
   background: var(--bg-card);
   border: 1px solid var(--border-main);
+  border-left: 4px solid var(--active-blue);
   border-radius: 14px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  min-height: 104px;
+  box-sizing: border-box;
 }
 
-.process-toolbar-info h3 {
-  margin: 0 0 4px;
-  color: var(--text-title);
-}
-
-.process-toolbar-info p {
-  margin: 0;
-  color: var(--text-muted);
-  font-size: 0.9rem;
-}
-
-.process-toolbar-actions {
+.proc-narration-head {
   display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.narration-title-wrap {
+  display: flex;
+  align-items: center;
   gap: 10px;
-  flex-wrap: wrap;
+  color: var(--text-title);
+  font-weight: 700;
+}
+
+.narration-title-wrap svg {
+  width: 1.2em;
+  height: 1.2em;
+  color: var(--active-blue);
+}
+
+.proc-narration-tag {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  color: var(--active-blue);
+  letter-spacing: 0.04em;
+  background: rgba(56, 189, 248, 0.1);
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(56, 189, 248, 0.25);
+}
+
+.proc-narration-text {
+  margin: 0;
+  color: var(--text-main);
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+@keyframes narrate-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+
+.proc-narration-text.anim {
+  animation: narrate-in 0.35s ease;
+}
+
+.btn-theory-info {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  background: rgba(56, 189, 248, 0.1);
+  color: var(--active-blue);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-theory-info:hover {
+  background: var(--active-blue);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(56, 189, 248, 0.35);
+}
+
+.btn-theory-info svg {
+  width: 1.05em;
+  height: 1.05em;
+}
+
+/* --------------------------------------------------------------------------
+   2. COMPONENTE DEL DIAGRAMA CENTRADO Y BALANCEADO
+   -------------------------------------------------------------------------- */
+.proc-diagram-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-card);
+  border: 1px solid var(--border-main);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
 }
 
 .proc-diagram-wrap {
   position: relative;
   background: radial-gradient(circle at top, #1e293b, #0b0f19);
-  border: 1px solid var(--border-main);
-  border-radius: 16px;
-  padding: 24px 16px 32px;
-  min-height: 360px;
+  padding: 32px 30px 40px;
+  min-height: 400px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .proc-arrows {
@@ -55,30 +136,66 @@
   z-index: 0;
 }
 
+.proc-arrows .arrow-line {
+  stroke: var(--active-blue);
+  stroke-width: 1.8;
+  fill: none;
+  opacity: 0.65;
+  transition: opacity 0.3s ease, stroke-width 0.3s ease, stroke 0.3s ease;
+}
+
+.proc-arrows .arrow-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  fill: #e2e8f0;
+  letter-spacing: 0.02em;
+}
+
+.proc-arrows .arrow-label-bg {
+  fill: #0b0f19;
+  stroke: var(--border-main);
+  stroke-width: 0.8;
+}
+
+.proc-arrows.has-highlight .arrow-line {
+  opacity: 0.2;
+}
+
+.proc-arrows.has-highlight .arrow-line.arrow-active {
+  opacity: 1;
+  stroke-width: 3.2;
+  stroke: #7dd3fc;
+}
+
 .proc-diagram {
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  grid-template-rows: auto auto;
-  gap: 24px 12px;
+  grid-template-columns: repeat(5, minmax(130px, 1fr));
+  grid-template-rows: auto auto auto;
+  gap: 50px 36px;
+  width: 100%;
+  max-width: 1080px;
+  margin: 0 auto;
   align-items: start;
 }
 
-#node-NEW { grid-column: 1; grid-row: 1; }
-#node-READY { grid-column: 2; grid-row: 1; }
-#node-RUNNING { grid-column: 3; grid-row: 1; }
-#node-TERMINATED { grid-column: 4; grid-row: 1; }
-#node-WAITING { grid-column: 3; grid-row: 2; }
+#node-NEW        { grid-column: 1; grid-row: 1; }
+#node-READY      { grid-column: 2; grid-row: 2; }
+#node-RUNNING    { grid-column: 4; grid-row: 2; }
+#node-WAITING    { grid-column: 3; grid-row: 3; }
+#node-TERMINATED { grid-column: 5; grid-row: 1; }
 
 .proc-node {
+  position: relative;
   background: linear-gradient(145deg, #1a2234, #111827);
   border: 2px solid var(--border-light);
   border-radius: 14px;
   padding: 12px;
-  min-height: 110px;
+  min-height: 120px;
+  box-sizing: border-box;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
-  transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .proc-node.active {
@@ -95,11 +212,12 @@
   margin-bottom: 10px;
   padding-bottom: 8px;
   border-bottom: 1px solid var(--border-main);
+  font-size: 0.92rem;
 }
 
 .proc-node-header svg {
-  width: 1em;
-  height: 1em;
+  width: 1.1em;
+  height: 1.1em;
 }
 
 .proc-node-waiting {
@@ -110,27 +228,40 @@
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  min-height: 44px;
+  min-height: 48px;
   align-content: flex-start;
 }
 
+/* Tokens de procesos minimalistas */
 .proc-token {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   min-width: 52px;
-  height: 34px;
+  height: 36px;
   padding: 0 12px;
   border-radius: 10px;
   background: linear-gradient(135deg, #0284c7, #2563eb);
   color: #fff;
   font-family: var(--font-mono);
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   font-weight: 700;
   letter-spacing: 0.04em;
   box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35);
   will-change: transform, opacity;
-  transition: background 0.2s, box-shadow 0.2s;
+  transition: background 0.2s, box-shadow 0.2s, transform 0.15s;
+  cursor: pointer;
+  user-select: none;
+}
+
+.proc-token:hover {
+  transform: scale(1.08);
+}
+
+.proc-token.proc-selected {
+  outline: 3px solid #facc15;
+  outline-offset: 2px;
+  box-shadow: 0 0 16px rgba(250, 204, 21, 0.7);
 }
 
 .proc-token.proc-running {
@@ -149,71 +280,280 @@
   opacity: 0.85;
 }
 
-.proc-token {
-  cursor: pointer;
+/* --------------------------------------------------------------------------
+   3. BARRA DE CONTROLES EN LA BASE DEL GRÁFICO (FOOTER ESTRUCTURADO)
+   -------------------------------------------------------------------------- */
+.proc-chart-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 24px;
+  background: var(--bg-card-secondary);
+  border-top: 1px solid var(--border-main);
 }
 
-.proc-token.proc-selected {
-  outline: 2px solid #fff;
-  outline-offset: 2px;
-  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.25), 0 6px 16px rgba(37, 99, 235, 0.4);
-}
-
-/* Barra de transiciones interactivas */
-.process-actions-bar {
+/* Fila 1: Algoritmo y Conmutador de Modo */
+.footer-scheduler-bar {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 16px;
   flex-wrap: wrap;
-  gap: 12px;
-  padding: 12px 16px;
-  background: var(--bg-card);
-  border: 1px solid var(--border-main);
-  border-radius: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-main);
 }
 
-.process-actions-bar label {
+.sched-algo-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sched-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
   color: var(--text-muted);
-  font-size: 0.9rem;
 }
 
-.proc-select {
-  background: var(--bg-card-secondary);
-  color: var(--text-main);
+.sched-title svg {
+  width: 1em;
+  height: 1em;
+  color: var(--active-blue);
+}
+
+.sched-algo-buttons {
+  display: inline-flex;
+  background: var(--bg-main);
   border: 1px solid var(--border-main);
   border-radius: 8px;
-  padding: 8px 10px;
+  padding: 3px;
+  gap: 4px;
+}
+
+.btn-algo-chip {
+  padding: 5px 12px;
+  font-size: 0.82rem;
+  font-weight: 600;
   font-family: var(--font-mono);
-  font-size: 0.85rem;
-  min-width: 160px;
+  background: transparent;
+  color: var(--text-muted);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  margin: 0;
+  line-height: 1;
+  transition: all 0.15s ease;
+}
+
+.btn-algo-chip:hover {
+  color: var(--text-main);
+}
+
+.btn-algo-chip.active {
+  background: var(--active-blue);
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(56, 189, 248, 0.35);
+}
+
+.process-mode-switch {
+  display: inline-flex;
+  gap: 4px;
+  background: var(--bg-main);
+  padding: 4px;
+  border-radius: 10px;
+  border: 1px solid var(--border-main);
+  margin: 0;
+}
+
+.btn-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 14px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  border-radius: 7px;
+  cursor: pointer;
+  margin: 0;
+  line-height: 1;
+  transition: all 0.15s ease;
+}
+
+.btn-tab:hover {
+  color: var(--text-main);
+}
+
+.btn-tab.active {
+  background: var(--active-blue);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(56, 189, 248, 0.35);
+}
+
+/* Fila 2: Acciones dinámicas de Demo o Manual */
+.footer-ctrl-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.footer-ctrl-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.footer-ctrl-panel.is-hidden {
+  display: none !important;
+}
+
+.ctrl-btn-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ctrl-btn-row .btn {
+  margin: 0;
+}
+
+.btn-highlight {
+  background: linear-gradient(135deg, #0284c7, #2563eb);
+  color: #fff;
+  border: none;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35);
+}
+
+.btn-highlight:hover {
+  background: linear-gradient(135deg, #0369a1, #1d4ed8);
+  transform: translateY(-1px);
+}
+
+#btn-play .icon-play { display: inline; }
+#btn-play .icon-pause { display: none; }
+#btn-play.is-playing .icon-play { display: none; }
+#btn-play.is-playing .icon-pause { display: inline; }
+
+/* Control segmentado de velocidad */
+.speed-segmented-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--bg-main);
+  border: 1px solid var(--border-main);
+  padding: 3px 6px;
+  border-radius: 8px;
+}
+
+.speed-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  margin-right: 4px;
+}
+
+.speed-label svg {
+  width: 1em;
+  height: 1em;
+}
+
+.btn-speed-pill {
+  padding: 4px 8px;
+  font-size: 0.76rem;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  background: transparent;
+  border: none;
+  border-radius: 5px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-speed-pill:hover {
+  color: var(--text-main);
+}
+
+.btn-speed-pill.active {
+  background: var(--active-blue);
+  color: #fff;
+}
+
+/* Modo Manual Footer Cluster */
+.manual-actions-cluster {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  width: 100%;
+  flex-wrap: wrap;
+}
+
+.manual-transitions-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.trans-label {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.84rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  line-height: 1;
 }
 
 .process-action-buttons {
-  display: flex;
-  gap: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   flex-wrap: wrap;
-  margin-left: auto;
 }
 
 .btn-act {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
-  padding: 8px 12px;
+  padding: 7px 13px;
   font-size: 0.82rem;
   font-weight: 600;
+  line-height: 1;
   color: var(--text-main);
-  background: var(--bg-card-secondary);
+  background: var(--bg-main);
   border: 1px solid var(--border-main);
-  border-radius: 9px;
+  border-radius: 8px;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+  transition: all 0.15s ease;
 }
 
-.btn-act:hover {
+.btn-act:hover:not(:disabled) {
   background: var(--active-blue);
   border-color: var(--active-blue);
   color: #fff;
   transform: translateY(-1px);
+}
+
+.btn-act:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .btn-act svg {
@@ -221,47 +561,363 @@
   height: 1em;
 }
 
-.process-status.status-error {
-  color: #fca5a5;
-  border: 1px solid rgba(248, 113, 113, 0.4);
-}
-
-.proc-legend {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.process-status {
-  padding: 10px 14px;
-  border-radius: 10px;
-  background: var(--bg-card-secondary);
-  color: var(--text-main);
+.clock-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-family: var(--font-mono);
-  font-size: 0.85rem;
-  min-height: 20px;
-}
-
-.proc-state-panel pre {
-  margin: 0;
-  padding: 14px;
-  background: var(--bg-card-secondary);
+  font-size: 0.84rem;
+  line-height: 1;
+  background: var(--bg-main);
   border: 1px solid var(--border-main);
-  border-radius: 10px;
+  padding: 7px 12px;
+  border-radius: 8px;
   color: var(--text-main);
-  font-family: var(--font-mono);
-  font-size: 0.85rem;
-  white-space: pre-wrap;
 }
 
-@media (max-width: 768px) {
+.clock-badge strong {
+  color: var(--active-blue);
+}
+
+/* --------------------------------------------------------------------------
+   4. MODAL FLOTANTE DE TEORÍA
+   -------------------------------------------------------------------------- */
+.theory-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.theory-modal-backdrop.is-hidden {
+  display: none !important;
+}
+
+.theory-modal-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-main);
+  border-radius: 16px;
+  max-width: 640px;
+  width: 100%;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: modal-pop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modal-pop {
+  from { opacity: 0; transform: scale(0.96) translateY(6px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.theory-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-main);
+  background: var(--bg-card-secondary);
+}
+
+.modal-title-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-title);
+}
+
+.modal-title-group svg {
+  width: 1.25em;
+  height: 1.25em;
+  color: var(--active-blue);
+}
+
+.modal-title-group h3 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.btn-modal-close {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.btn-modal-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.theory-modal-tabs {
+  display: flex;
+  gap: 6px;
+  padding: 10px 20px;
+  background: var(--bg-main);
+  border-bottom: 1px solid var(--border-main);
+  overflow-x: auto;
+}
+
+.btn-modal-tab {
+  padding: 6px 12px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.btn-modal-tab:hover {
+  color: var(--text-main);
+}
+
+.btn-modal-tab.active {
+  background: var(--active-blue);
+  color: #fff;
+}
+
+.theory-modal-body {
+  padding: 22px;
+  max-height: 380px;
+  overflow-y: auto;
+}
+
+.theory-tab-content h4 {
+  margin: 0 0 6px;
+  color: var(--text-title);
+  font-size: 1.05rem;
+}
+
+.theory-tab-content .algo-badge {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgba(56, 189, 248, 0.12);
+  color: var(--active-blue);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  margin-bottom: 12px;
+}
+
+.theory-tab-content p {
+  color: var(--text-main);
+  font-size: 0.92rem;
+  line-height: 1.6;
+  margin: 0 0 16px;
+}
+
+.theory-pros-cons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
+.theory-pros-cons .pro {
+  color: #6ee7b7;
+  background: rgba(16, 185, 129, 0.08);
+  border-left: 3px solid #10b981;
+  padding: 8px 12px;
+  border-radius: 0 8px 8px 0;
+}
+
+.theory-pros-cons .con {
+  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.08);
+  border-left: 3px solid #ef4444;
+  padding: 8px 12px;
+  border-radius: 0 8px 8px 0;
+}
+
+/* --------------------------------------------------------------------------
+   5. INSPECTOR FLOTANTE / TOOLTIP DE PCB (ANCLADO AL PROCESO)
+   -------------------------------------------------------------------------- */
+.pcb-inspector-panel {
+  position: absolute;
+  z-index: 100;
+  width: 250px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-main);
+  border-radius: 12px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
+  overflow: hidden;
+  animation: modal-pop 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: auto;
+}
+
+.pcb-inspector-panel.is-hidden {
+  display: none !important;
+}
+
+.inspector-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: var(--bg-card-secondary);
+  border-bottom: 1px solid var(--border-main);
+}
+
+.inspector-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.88rem;
+  color: var(--text-title);
+}
+
+.inspector-title svg {
+  width: 1.1em;
+  height: 1.1em;
+  color: var(--active-blue);
+}
+
+.btn-inspector-close {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 1.2rem;
+  line-height: 1;
+  padding: 0 4px;
+}
+
+.btn-inspector-close:hover {
+  color: #fff;
+}
+
+.inspector-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  font-size: 0.84rem;
+}
+
+.pcb-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.pcb-key {
+  color: var(--text-muted);
+}
+
+.pcb-val {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.pcb-val.badge-state {
+  color: var(--active-blue);
+  background: rgba(56, 189, 248, 0.12);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* --------------------------------------------------------------------------
+   6. DIALOG MODAL DE ADVERTENCIAS / RECHAZO DEL SO
+   -------------------------------------------------------------------------- */
+.so-alert-dialog {
+  border: none;
+  background: transparent;
+  padding: 0;
+  max-width: 440px;
+  width: 90%;
+  margin: auto;
+}
+
+.so-alert-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(3px);
+}
+
+.so-dialog-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-main);
+  border-left: 4px solid #f87171;
+  border-radius: 14px;
+  padding: 20px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: modal-pop 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.so-dialog-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #f87171;
+}
+
+.so-dialog-head svg {
+  width: 1.3em;
+  height: 1.3em;
+}
+
+.so-dialog-head h4 {
+  margin: 0;
+  font-size: 1.05rem;
+  color: var(--text-title);
+}
+
+.so-dialog-msg {
+  margin: 0;
+  color: var(--text-main);
+  font-size: 0.94rem;
+  line-height: 1.55;
+}
+
+.so-dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 6px;
+}
+
+.so-dialog-footer .btn {
+  margin: 0;
+}
+
+@media (max-width: 900px) {
   .proc-diagram {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: 1fr;
+    grid-template-rows: repeat(5, auto);
+    gap: 20px 0;
+    padding: 10px 0;
+    min-height: auto;
   }
-  #node-NEW { grid-column: 1; grid-row: 1; }
-  #node-READY { grid-column: 2; grid-row: 1; }
-  #node-RUNNING { grid-column: 1; grid-row: 2; }
-  #node-TERMINATED { grid-column: 2; grid-row: 2; }
-  #node-WAITING { grid-column: 1; grid-row: 3; }
-  .proc-arrows { display: none; }
+  #node-NEW        { grid-column: 1; grid-row: 1; }
+  #node-READY      { grid-column: 1; grid-row: 2; }
+  #node-RUNNING    { grid-column: 1; grid-row: 3; }
+  #node-WAITING    { grid-column: 1; grid-row: 4; }
+  #node-TERMINATED { grid-column: 1; grid-row: 5; }
+  .proc-arrows     { display: none; }
+  .pcb-inspector-panel {
+    position: static;
+    width: 100%;
+    margin-top: 10px;
+  }
 }

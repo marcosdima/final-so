@@ -3,8 +3,9 @@
    ========================================================================== */
 
 .btn {
-  display: inline-block;
-  margin-top: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   padding: 8px 16px;
   border-radius: 8px;
   background: linear-gradient(90deg, #0284c7, #7c3aed);
