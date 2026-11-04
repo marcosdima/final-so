@@ -211,6 +211,9 @@
                     <span class="step-badge-tag">PASO {{ forloop.counter }}</span>
                     <h3 class="step-card-title">{{ step.title }}</h3>
                   </div>
+                  {% if step.formula %}
+                  <div class="step-formula-box"><code>{{ step.formula }}</code></div>
+                  {% endif %}
                   <p class="step-body-text">{{ step.explanation }}</p>
                 </article>
                 {% endfor %}

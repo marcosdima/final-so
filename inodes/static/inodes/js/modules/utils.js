@@ -75,7 +75,21 @@ export function syncTablesAndSelection(resolution, currentResolution, currentSte
   const stepBlock = (step && step.disk_block != null) ? step.disk_block : resolution.physical_block;
 
   let selectedRow = null;
-  if (resolution.route_type === "INDIRECT_SIMPLE") {
+  if (step?.highlight_dom) {
+    const domEl = document.getElementById(step.highlight_dom);
+    if (
+      domEl &&
+      (domEl.classList.contains("simple-entry-item") ||
+        domEl.classList.contains("simple-node-row") ||
+        domEl.classList.contains("double-item-row") ||
+        domEl.classList.contains("triple-item-row"))
+    ) {
+      domEl.classList.add("active-entry");
+      selectedRow = domEl;
+    }
+  }
+
+  if (!selectedRow && resolution.route_type === "INDIRECT_SIMPLE") {
     const row = document.querySelector(`.simple-entry-item[data-target-block="${stepBlock}"]`) ||
                 document.querySelector(`.simple-node-row[data-target-block="${stepBlock}"]`);
     if (row) { row.classList.add("active-entry"); selectedRow = row; }
