@@ -17,56 +17,13 @@
 {% block content %}
 <!--
   Disposición:
-    [fila 1, cols 1-3]  Barra de ejemplos (compacta)
-    [fila 2, col 1]     Inodo
-    [fila 2, cols 2-3]  Disco físico
-    [cols 4, filas 1-2] Simulación (arriba) + Tablas de índices (abajo)
+    [col 1]     Inodo
+    [cols 2-3]  Disco físico (con input de posición lógica)
+    [col 4]     Simulación (arriba) + Tablas de índices (abajo)
 -->
 <div class="simulation-grid">
 
-  <!-- Barra de ejemplos: fila superior, sobre el inodo y el disco -->
-  <section class="examples-bar">
-    <div class="examples-row">
-      <span class="examples-label"><i data-lucide="flask-conical"></i> Ejemplos</span>
-      <div class="presets-container">
-        <button type="button" class="btn-preset" data-pos="1" title="Posición 1 (Directo [0])">Directo 1</button>
-        <button type="button" class="btn-preset active" data-pos="10" title="Posición 10 (Directo [9])">Directo 10</button>
-        <button type="button" class="btn-preset" data-pos="14" title="Posición 14 (Ind. Simple)">Simple 14</button>
-        <button type="button" class="btn-preset" data-pos="18" title="Posición 18 (Ind. Doble)">Doble 18</button>
-        <button type="button" class="btn-preset" data-pos="26" title="Posición 26 (Ind. Triple)">Triple 26</button>
-      </div>
-      <button type="button" class="btn-randomize" id="btn-randomize" title="Aleatorizar direcciones" aria-label="Aleatorizar direcciones" onclick="location.href='?seed='+Math.floor(Math.random()*1e9)">
-        <i data-lucide="shuffle"></i>
-      </button>
-    </div>
-
-    <div class="examples-row">
-      <div class="input-group">
-        <label for="logical-pos-input">Posición lógica</label>
-        <div class="input-wrapper input-wrapper--compact">
-          <i data-lucide="hash" class="input-icon-prefix"></i>
-          <input
-            type="number"
-            id="logical-pos-input"
-            name="pos"
-            value="{{ initial_pos }}"
-            min="1"
-            max="{{ structure.total_logical_positions }}"
-            step="1"
-            placeholder="Ej: 10"
-            required
-          >
-        </div>
-      </div>
-
-      <div class="formal-calc-badge" id="formal-calc-badge">
-        <i data-lucide="binary" class="badge-icon"></i>
-        <span id="formal-calc-text">{{ initial_resolution.formal_calc }}</span>
-      </div>
-    </div>
-  </section>
-
-  <!-- Inodo: ocupa las dos filas de la primera columna -->
+  <!-- Inodo: primera columna -->
   <div class="inode-column">
     <div class="inode-card" id="inode-card">
       <div class="inode-header">
@@ -133,7 +90,7 @@
     </div>
   </div>
 
-  <!-- Disco físico: ocupa el bloque central 2x2 -->
+  <!-- Disco físico: bloque central -->
   <div class="disk-column">
     <div class="disk-panel">
       <div class="disk-header-bar">
@@ -141,7 +98,26 @@
           <i data-lucide="disc" class="icon-disk"></i>
           <div>
             <h3>Disco Físico (100 Bloques: #00 al #99)</h3>
-            <p>Representación de los 100 bloques del medio de almacenamiento.</p>
+            <p>Seleccioná un bloque ocupado en el disco o ingresá una posición lógica.</p>
+          </div>
+        </div>
+        <div class="disk-header-controls">
+          <div class="input-group">
+            <label for="logical-pos-input">Posición lógica</label>
+            <div class="input-wrapper input-wrapper--compact">
+              <i data-lucide="hash" class="input-icon-prefix"></i>
+              <input
+                type="number"
+                id="logical-pos-input"
+                name="pos"
+                value="{{ initial_pos }}"
+                min="1"
+                max="{{ structure.total_logical_positions }}"
+                step="1"
+                placeholder="1–{{ structure.total_logical_positions }}"
+                required
+              >
+            </div>
           </div>
         </div>
       </div>
@@ -163,6 +139,7 @@
             data-block-id="{{ block.id }}"
             data-block-role="{{ block.role }}"
             data-block-desc="{{ block.desc }}"
+            {% if block.position %}data-position="{{ block.position }}"{% endif %}
             title="{{ block.desc }}"
           >
             <span class="cell-id">#{{ block.id|stringformat:"02d" }}</span>

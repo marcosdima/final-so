@@ -3,8 +3,6 @@ import { initController } from "./modules/controller.js";
 document.addEventListener("DOMContentLoaded", () => {
   const uiElements = {
     posInput: document.getElementById("logical-pos-input"),
-    presetButtons: document.querySelectorAll(".btn-preset"),
-    formalCalcText: document.getElementById("formal-calc-text"),
     stepCounterText: document.getElementById("step-counter-text"),
     stepProgressFill: document.getElementById("step-progress-fill"),
     carouselTrack: document.getElementById("carousel-track"),

@@ -132,15 +132,29 @@ export function scrollGuidedStep(step, blockId) {
 /** Clear all active UI states */
 export function clearActiveStates() {
   document.querySelectorAll('.pointer-item').forEach((el) => el.classList.remove('active-pointer'));
-  document.querySelectorAll('.matrix-cell').forEach((el) => el.classList.remove('cell-active-target'));
+  document.querySelectorAll('.matrix-cell').forEach((el) => {
+    el.classList.remove('cell-active-target', 'cell-active-step');
+  });
   clearIndexEntries();
 }
 
-/** Highlight a specific disk cell */
-export function highlightDiskCell(blockId) {
-  document.querySelectorAll('.matrix-cell').forEach((el) => el.classList.remove('cell-active-target'));
+/** Highlight a specific disk cell (and optionally keep the resolution target block highlighted) */
+export function highlightDiskCell(blockId, targetBlockId = null) {
+  document.querySelectorAll('.matrix-cell').forEach((el) => {
+    el.classList.remove('cell-active-target', 'cell-active-step');
+  });
+  if (targetBlockId != null) {
+    const targetCell = document.getElementById(`disk-cell-${targetBlockId}`);
+    if (targetCell) targetCell.classList.add('cell-active-target');
+  }
   const cell = document.getElementById(`disk-cell-${blockId}`);
-  if (cell) cell.classList.add('cell-active-target');
+  if (cell) {
+    if (targetBlockId == null || blockId === targetBlockId) {
+      cell.classList.add('cell-active-target');
+    } else {
+      cell.classList.add('cell-active-step');
+    }
+  }
 }
 
 /** Update active pointer element */

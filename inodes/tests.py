@@ -86,6 +86,18 @@ class InodeResolutionTests(TestCase):
         self.assertEqual(state["total_blocks"], 100)
         self.assertEqual(len(state["disk_blocks"]), 100)
 
+    def test_occupied_disk_blocks_include_logical_position(self):
+        blocks = self.sim.get_disk_blocks()
+        occupied = [b for b in blocks if b["role"] != "free"]
+        free = [b for b in blocks if b["role"] == "free"]
+        self.assertEqual(len(occupied), 35)
+        for blk in occupied:
+            self.assertIn("position", blk)
+            self.assertGreaterEqual(blk["position"], 1)
+            self.assertLessEqual(blk["position"], self.sim.total_logical_positions)
+        for blk in free:
+            self.assertNotIn("position", blk)
+
     def test_dispatch_resolve(self):
         result = self.sim.dispatch("resolve", {"pos": 10})
         self.assertEqual(result["route_type"], "DIRECT")

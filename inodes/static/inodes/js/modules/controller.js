@@ -12,8 +12,6 @@ let SIMPLE_BASE = 0,
 
 // UI elements (will be set in init)
 let posInput,
-    presetButtons,
-    formalCalcText,
     stepCounterText,
     stepProgressFill,
     carouselTrack,
@@ -40,8 +38,6 @@ export function initController(uiElements) {
   // Assign UI elements
   ({
     posInput,
-    presetButtons,
-    formalCalcText,
     stepCounterText,
     stepProgressFill,
     carouselTrack,
@@ -94,17 +90,6 @@ export function initController(uiElements) {
 }
 
 function attachEventListeners() {
-  // Preset buttons
-  presetButtons?.forEach((btn) => {
-    btn.addEventListener("click", () => {
-      presetButtons.forEach((b) => b.classList.remove("active"));
-      btn.classList.add("active");
-      const pos = parseInt(btn.getAttribute("data-pos"), 10);
-      posInput.value = pos;
-      resolvePosition(pos);
-    });
-  });
-
   // Position input
   posInput?.addEventListener("input", () => {
     const val = parseInt(posInput.value, 10);
@@ -213,27 +198,27 @@ function attachEventListeners() {
     resolvePosition(TRIPLE_BASE, "ptr-indirect-3");
   });
 
-  // Disk cells
+  // Disk cells: clic directo sobre cualquier bloque ocupado resuelve su posición lógica
   document.querySelectorAll(".matrix-cell").forEach((cell) => {
-    cell.addEventListener("click", () => {
+    cell.addEventListener("click", async () => {
       const blockId = parseInt(cell.getAttribute("data-block-id"), 10);
       const role = cell.dataset.blockRole || "";
-      utils.clearActiveStates();
-      cell.classList.add("cell-active-target");
-      utils.scrollDiskIntoView(blockId);
+      if (role === "free") return;
 
-      if (role === "index_simple" || role === "indirect_simple_data") {
-        utils.focusIndexPanel(simplePanel, blockId, role);
-      } else if (role === "index_double_1" || role === "index_double_2" || role === "indirect_double_data") {
-        utils.focusIndexPanel(doublePanel, blockId, role);
-      } else if (role === "index_triple_1" || role === "index_triple_sub" || role === "indirect_triple_data") {
-        utils.focusIndexPanel(triplePanel, blockId, role);
-      }
+      const posAttr = cell.getAttribute("data-position");
+      const blockMeta = simData?.disk_blocks?.find((b) => b.id === blockId);
+      const pos = posAttr ? parseInt(posAttr, 10) : blockMeta?.position;
+      if (!pos) return;
 
-      const directPtr = simData?.direct_pointers?.find((p) => p.block === blockId);
-      if (directPtr) {
-        posInput.value = directPtr.position;
-        resolvePosition(directPtr.position, `ptr-direct-${directPtr.index}`);
+      if (posInput) posInput.value = pos;
+      const resolution = await resolvePosition(pos);
+
+      // Si se clickeó un bloque de índice intermedio, avanzar al paso que lo inspecciona
+      if (role.startsWith("index_") && resolution?.steps?.length) {
+        const stepIdx = resolution.steps.findIndex((s) => s.disk_block === blockId);
+        if (stepIdx > 0) {
+          renderStep(stepIdx);
+        }
       }
     });
   });
@@ -329,7 +314,6 @@ function setResolution(data, keepPointerDomId = null) {
   currentStepIdx = 0;
   stopAuto();
 
-  if (formalCalcText) formalCalcText.textContent = data.formal_calc;
   buildStepCards(data);
 
   // Mostrar la tabla de índices que corresponde a la ruta y marcar el puntero del inodo
@@ -408,10 +392,12 @@ export function renderStep(idx) {
   utils.clearIndexEntries();
   utils.syncTablesAndSelection(currentResolution, currentResolution, idx);
 
-  // Highlight disk cell
+  // Highlight disk cell (manteniendo resaltado el bloque físico destino)
   if (step.disk_block != null) {
-    utils.highlightDiskCell(step.disk_block);
+    utils.highlightDiskCell(step.disk_block, currentResolution.physical_block);
     utils.scrollDiskIntoView(step.disk_block);
+  } else if (currentResolution.physical_block != null) {
+    utils.highlightDiskCell(currentResolution.physical_block);
   }
 }
 

@@ -205,62 +205,94 @@ class InodeSimulation:
         role_map: dict[int, tuple[str, str, dict[str, Any]]] = {}
 
         for idx, blk in enumerate(self.direct_blocks):
+            pos = idx + 1
             role_map[blk] = (
                 "direct",
-                f"Bloque #{blk:02d}: Dato Directo [{idx}] (Posición lógica {idx + 1})",
-                {"direct_idx": idx},
+                f"Bloque #{blk:02d}: Dato Directo [{idx}] (Posición lógica {pos})",
+                {"direct_idx": idx, "position": pos},
             )
 
+        simple_base_pos = self.direct_count + 1
+        simple_last_pos = self.direct_count + self.simple_count
         role_map[self.indirect_simple_block_id] = (
             "index_simple",
-            f"Bloque #{self.indirect_simple_block_id:02d}: Bloque de Índice Simple",
-            {},
+            (
+                f"Bloque #{self.indirect_simple_block_id:02d}: Bloque de Índice Simple "
+                f"(Posiciones lógicas {simple_base_pos} a {simple_last_pos})"
+            ),
+            {"position": simple_base_pos},
         )
         for idx, blk in enumerate(self.indirect_simple_entries):
+            pos = simple_base_pos + idx
             role_map[blk] = (
                 "indirect_simple_data",
                 (
                     f"Bloque #{blk:02d}: Dato de Índice Simple (Entrada [{idx}], "
-                    f"Posición {self.direct_count + 1 + idx})"
+                    f"Posición lógica {pos})"
                 ),
-                {},
+                {"position": pos},
             )
 
+        double_base_pos = self.direct_count + self.simple_count + 1
+        double_last_pos = double_base_pos + self.double_count - 1
         role_map[self.indirect_double_block_id] = (
             "index_double_1",
-            f"Bloque #{self.indirect_double_block_id:02d}: Índice Doble Nivel 1",
-            {},
+            (
+                f"Bloque #{self.indirect_double_block_id:02d}: Índice Doble Nivel 1 "
+                f"(Posiciones lógicas {double_base_pos} a {double_last_pos})"
+            ),
+            {"position": double_base_pos},
         )
-        for idx, blk in enumerate(self.indirect_double_l1_entries):
+        for l1_idx, blk in enumerate(self.indirect_double_l1_entries):
+            sub_base_pos = double_base_pos + l1_idx * self.ptrs_per_index_block
+            sub_last_pos = sub_base_pos + self.ptrs_per_index_block - 1
             role_map[blk] = (
                 "index_double_2",
-                f"Bloque #{blk:02d}: Índice Doble Nivel 2 (Subtabla [{idx}])",
-                {},
+                (
+                    f"Bloque #{blk:02d}: Índice Doble Nivel 2 (Subtabla [{l1_idx}], "
+                    f"Posiciones lógicas {sub_base_pos} a {sub_last_pos})"
+                ),
+                {"position": sub_base_pos},
             )
-        for values in self.indirect_double_l2_map.values():
-            for blk in values:
-                role_map[blk] = (
+            for l2_idx, data_blk in enumerate(self.indirect_double_l2_map.get(blk, [])):
+                pos = sub_base_pos + l2_idx
+                role_map[data_blk] = (
                     "indirect_double_data",
-                    f"Bloque #{blk:02d}: Dato indexado por Indirecto Doble",
-                    {},
+                    (
+                        f"Bloque #{data_blk:02d}: Dato Indirecto Doble "
+                        f"(Entrada [{l1_idx}][{l2_idx}], Posición lógica {pos})"
+                    ),
+                    {"position": pos},
                 )
 
+        triple_base_pos = self.direct_count + self.simple_count + self.double_count + 1
+        triple_last_pos = self.total_logical_positions
         role_map[self.indirect_triple_block_id] = (
             "index_triple_1",
-            f"Bloque #{self.indirect_triple_block_id:02d}: Índice Triple Nivel 1",
-            {},
+            (
+                f"Bloque #{self.indirect_triple_block_id:02d}: Índice Triple Nivel 1 "
+                f"(Posiciones lógicas {triple_base_pos} a {triple_last_pos})"
+            ),
+            {"position": triple_base_pos},
         )
         for blk in self.indirect_triple_l1_entries + self.indirect_triple_l2_entries:
             role_map[blk] = (
                 "index_triple_sub",
-                f"Bloque #{blk:02d}: Subíndice Triple (Nivel intermedio)",
-                {},
+                (
+                    f"Bloque #{blk:02d}: Subíndice Triple (Nivel intermedio, "
+                    f"Posiciones lógicas {triple_base_pos} a {triple_last_pos})"
+                ),
+                {"position": triple_base_pos},
             )
-        for blk in self.indirect_triple_data_blocks:
+        for idx, blk in enumerate(self.indirect_triple_data_blocks):
+            pos = triple_base_pos + idx
             role_map[blk] = (
                 "indirect_triple_data",
-                f"Bloque #{blk:02d}: Dato indexado por Indirecto Triple",
-                {},
+                (
+                    f"Bloque #{blk:02d}: Dato Indirecto Triple "
+                    f"(Entrada [{idx}], Posición lógica {pos})"
+                ),
+                {"position": pos},
             )
 
         blocks: list[dict[str, Any]] = []
