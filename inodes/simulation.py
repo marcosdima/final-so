@@ -330,11 +330,12 @@ class InodeSimulation:
             "steps": [
                 {
                     "step_num": 1,
-                    "title": "Conversión a Bloque Lógico (Base 0)",
+                    "title": "Conversión a Índice de Bloque Lógico (desde 0)",
                     "formula": f"N = Posición − 1 = {logical_position} − 1 = {n}",
                     "explanation": (
-                        f"La posición lógica solicitada ({logical_position}, numerada desde 1) "
-                        f"se traduce al índice de bloque lógico N = {n} (numerado desde 0)."
+                        f"Para la posición lógica {logical_position}, se resta 1 dado que "
+                        f"las estructuras internas del sistema operativo numeran los bloques "
+                        f"y punteros comenzando desde 0, obteniendo el índice N = {n}."
                     ),
                     "highlight_dom": f"ptr-direct-{n}",
                     "disk_block": phys_block,
@@ -408,15 +409,15 @@ class InodeSimulation:
             "steps": [
                 {
                     "step_num": 1,
-                    "title": "Bloque Lógico y Rango Indirecto Simple",
+                    "title": "Índice Lógico (desde 0) y Rango Indirecto Simple",
                     "formula": (
                         f"N = {logical_position} − 1 = {n}   │   "
                         f"{self.direct_count} ≤ {n} < {limit_simple}"
                     ),
                     "explanation": (
-                        f"El índice lógico N = {n} supera los {self.direct_count} punteros "
-                        f"directos (0..{self.direct_count - 1}) y se ubica dentro del rango "
-                        f"del Puntero Indirecto Simple ({self.direct_count}..{limit_simple - 1})."
+                        f"Se resta 1 a la posición {logical_position} porque los índices internos "
+                        f"comienzan desde 0 (N = {n}). Al superar los {self.direct_count} punteros "
+                        f"directos (0..{self.direct_count - 1}), se emplea el Puntero Indirecto Simple."
                     ),
                     "highlight_dom": "ptr-indirect-1",
                     "disk_block": idx_block,
@@ -519,15 +520,15 @@ class InodeSimulation:
             "steps": [
                 {
                     "step_num": 1,
-                    "title": "Desplazamiento en Indirecto Doble (d)",
+                    "title": "Índice Lógico (desde 0) y Desplazamiento Doble (d)",
                     "formula": (
                         f"N = {logical_position} − 1 = {n}   ⇒   "
                         f"d = N − ({self.direct_count} + {self.simple_count}) = {n} − {dbl_base} = {rel_double}"
                     ),
                     "explanation": (
-                        f"El bloque lógico N = {n} excede los bloques directos ({self.direct_count}) "
-                        f"y simples ({self.simple_count}). Se descuentan esos {dbl_base} bloques "
-                        f"previos para obtener el desplazamiento relativo d = {rel_double} en el árbol doble."
+                        f"Partiendo del índice N = {n} (numerado desde 0), se descuentan los "
+                        f"bloques directos ({self.direct_count}) y simples ({self.simple_count}) "
+                        f"previos para obtener el desplazamiento d = {rel_double} en el árbol doble."
                     ),
                     "highlight_dom": "double-node-n1",
                     "disk_block": n1_block_id,
@@ -638,16 +639,17 @@ class InodeSimulation:
             "steps": [
                 {
                     "step_num": 1,
-                    "title": "Desplazamiento en Indirecto Triple (d)",
+                    "title": "Índice Lógico (desde 0) y Desplazamiento Triple (d)",
                     "formula": (
                         f"N = {logical_position} − 1 = {n}   ⇒   "
                         f"d = N − ({self.direct_count} + {self.simple_count} + {self.double_count}) "
                         f"= {n} − {triple_base} = {rel_triple}"
                     ),
                     "explanation": (
-                        f"El bloque lógico N = {n} supera los bloques directos ({self.direct_count}), "
-                        f"simples ({self.simple_count}) y dobles ({self.double_count}). Restando los "
-                        f"{triple_base} bloques previos se obtiene el desplazamiento d = {rel_triple}."
+                        f"Convertida la posición al índice N = {n} (numerado desde 0), se "
+                        f"descuentan los bloques directos ({self.direct_count}), simples "
+                        f"({self.simple_count}) y dobles ({self.double_count}) previos para "
+                        f"obtener el desplazamiento d = {rel_triple}."
                     ),
                     "highlight_dom": "ptr-indirect-3",
                     "disk_block": l1_id,
