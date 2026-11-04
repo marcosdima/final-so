@@ -121,9 +121,8 @@
 .proc-diagram-wrap {
   position: relative;
   background: radial-gradient(circle at top, #1e293b, #0b0f19);
-  padding: 32px 30px 40px;
-  height: 460px;
-  min-height: 460px;
+  padding: 32px 24px 40px;
+  min-height: 520px;
   box-sizing: border-box;
   display: flex;
   align-items: center;
@@ -174,13 +173,13 @@
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: repeat(5, minmax(140px, 1fr));
-  grid-template-rows: repeat(3, 124px);
-  gap: 32px 24px;
+  grid-template-columns: repeat(5, minmax(150px, 1fr));
+  grid-template-rows: auto auto auto;
+  gap: 44px 28px;
   width: 100%;
-  max-width: 1080px;
+  max-width: 1120px;
   margin: 0 auto;
-  align-items: stretch;
+  align-items: start;
 }
 
 #node-NEW        { grid-column: 1; grid-row: 1; }
@@ -194,15 +193,11 @@
   background: linear-gradient(145deg, #1a2234, #111827);
   border: 2px solid var(--border-light);
   border-radius: 14px;
-  padding: 10px 12px;
-  height: 124px;
-  min-height: 124px;
-  max-height: 124px;
+  padding: 12px 14px;
+  min-height: 152px;
   box-sizing: border-box;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
   transition: border-color 0.2s, box-shadow 0.2s;
-  display: flex;
-  flex-direction: column;
 }
 
 .proc-node.active {
@@ -216,11 +211,10 @@
   gap: 8px;
   font-weight: 700;
   color: var(--text-title);
-  margin-bottom: 8px;
-  padding-bottom: 6px;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
   border-bottom: 1px solid var(--border-main);
-  font-size: 0.9rem;
-  flex-shrink: 0;
+  font-size: 0.92rem;
 }
 
 .proc-node-header svg {
@@ -235,12 +229,9 @@
 .proc-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  height: 64px;
-  min-height: 64px;
-  max-height: 64px;
+  gap: 8px;
+  min-height: 82px;
   align-content: flex-start;
-  overflow-y: auto;
 }
 
 /* Tokens de procesos minimalistas */
@@ -248,17 +239,17 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 44px;
-  height: 28px;
-  padding: 0 9px;
-  border-radius: 8px;
+  min-width: 50px;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 10px;
   background: linear-gradient(135deg, #0284c7, #2563eb);
   color: #fff;
   font-family: var(--font-mono);
-  font-size: 0.85rem;
+  font-size: 0.95rem;
   font-weight: 700;
-  letter-spacing: 0.03em;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+  letter-spacing: 0.04em;
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35);
   will-change: transform, opacity;
   transition: background 0.2s, box-shadow 0.2s, transform 0.15s;
   cursor: pointer;
