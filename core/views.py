@@ -14,6 +14,7 @@ from typing import Any
 
 from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import render
+from django.urls import NoReverseMatch, reverse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
 
@@ -39,6 +40,13 @@ def _parse_seed(raw: Any) -> int | None:
         return None
 
 
+def _resolve_action_url(spec) -> str:
+    try:
+        return reverse(spec.action_url_name)
+    except NoReverseMatch:
+        return f"/{spec.slug}/api/action/"
+
+
 def make_index_view(slug: str):
     """Devuelve la vista GET que renderiza la página de una simulación.
 
@@ -53,11 +61,15 @@ def make_index_view(slug: str):
 
         sim = spec.create(seed=seed)
         state = sim.get_state()
+        action_url = _resolve_action_url(spec)
+        if isinstance(state.get("meta"), dict):
+            state["meta"]["action_url"] = action_url
 
         context: dict[str, Any] = {
             "simulation": spec,
             "seed": seed,
             "structure": state,
+            "action_url": action_url,
         }
         if spec.context is not None:
             context.update(spec.context(sim, state))
@@ -100,12 +112,14 @@ def make_action_view(slug: str):
                 raise SimulationError("El campo 'payload' debe ser un objeto.")
 
             seed = body.get("seed")
-            if seed is not None and not isinstance(seed, int):
+            if seed is not None and (isinstance(seed, bool) or not isinstance(seed, int)):
                 raise SimulationError("El campo 'seed' debe ser un entero.")
 
             sim = spec.create(seed=seed)
             result = sim.dispatch(action, payload)
             state = sim.get_state()
+            if isinstance(state.get("meta"), dict):
+                state["meta"]["action_url"] = _resolve_action_url(spec)
         except SimulationError as exc:
             return JsonResponse({"error": str(exc)}, status=400)
 

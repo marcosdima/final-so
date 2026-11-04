@@ -1,5 +1,13 @@
 <article class="sim-card">
-  <h3>{{ title }}</h3>
+  <div class="sim-card-head">
+    {% if icon %}
+    <span class="sim-card-icon"><i data-lucide="{{ icon }}" class="icon-inline"></i></span>
+    {% endif %}
+    <h3>{{ title }}</h3>
+  </div>
   <p>{{ description }}</p>
-  <a class="btn" href="{{ url }}">Abrir simulación</a>
+  <a class="btn sim-card-btn" href="{{ url }}">
+    <span>Abrir simulación</span>
+    <i data-lucide="arrow-right" class="icon-inline"></i>
+  </a>
 </article>

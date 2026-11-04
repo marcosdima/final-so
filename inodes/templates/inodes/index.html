@@ -187,9 +187,14 @@
               <span class="step-progress-label" id="step-progress-label">Recorrido de acceso a disco</span>
             </div>
           </div>
-          <button type="button" id="btn-step-reset" class="btn btn-ctrl btn-icon" title="Reiniciar al inicio">
-            <i data-lucide="rotate-ccw"></i>
-          </button>
+          <div style="display: inline-flex; gap: 6px; align-items: center;">
+            <button type="button" id="btn-step-auto" class="btn btn-ctrl btn-icon" title="Reproducir / Pausar recorrido automático" aria-pressed="false">
+              <i data-lucide="play"></i>
+            </button>
+            <button type="button" id="btn-step-reset" class="btn btn-ctrl btn-icon" title="Reiniciar al inicio">
+              <i data-lucide="rotate-ccw"></i>
+            </button>
+          </div>
         </div>
 
         <div class="step-progress-track" aria-hidden="true">

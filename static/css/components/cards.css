@@ -14,19 +14,49 @@
   border: 1px solid var(--border-main);
   border-radius: 14px;
   padding: 20px;
-  transition: transform 0.2s, box-shadow 0.2s;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
 }
 
 .sim-card:hover {
   transform: translateY(-4px);
+  border-color: rgba(56, 189, 248, 0.45);
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+}
+
+.sim-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sim-card-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  color: var(--active-blue);
 }
 
 .sim-card h3 {
   color: var(--text-title);
-  margin-bottom: 6px;
+  margin: 0;
 }
 
 .sim-card p {
   color: var(--text-muted);
+  margin: 0;
+  flex: 1;
+}
+
+.sim-card-btn {
+  align-self: flex-start;
+  gap: 6px;
+  margin-top: 6px;
 }

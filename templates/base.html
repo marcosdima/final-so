@@ -34,7 +34,7 @@
     <div class="header-container">
       <div class="brand">
         <div class="brand-icon-wrap">
-          <i data-lucide="hard-drive" class="icon-brand"></i>
+          <i data-lucide="{% block header_icon %}{{ simulation.icon|default:'layers' }}{% endblock %}" class="icon-brand"></i>
         </div>
         <div>
           <h1>{% block header_title %}Simulador de Sistemas Operativos{% endblock %}</h1>

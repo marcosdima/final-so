@@ -7,7 +7,7 @@
 </c-hero>
 <section class="sim-grid">
   {% for sim in simulations %}
-  <c-sim-card title="{{ sim.title }}" description="{{ sim.description }}" url="{% url sim.url_name %}"></c-sim-card>
+  <c-sim-card title="{{ sim.title }}" description="{{ sim.description }}" icon="{{ sim.icon }}" url="{% url sim.url_name %}"></c-sim-card>
   {% empty %}
   <p>No hay simulaciones registradas todavía.</p>
   {% endfor %}

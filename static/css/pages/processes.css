@@ -836,6 +836,45 @@
   border-radius: 4px;
 }
 
+.pcb-val-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-pcb-step {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border-radius: 4px;
+  border: 1px solid var(--border-main);
+  background: var(--bg-main);
+  color: var(--text-main);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.btn-pcb-step:hover {
+  background: var(--active-blue);
+  border-color: var(--active-blue);
+  color: #fff;
+}
+
+.btn-pcb-step.is-hidden {
+  display: none !important;
+}
+
+.proc-token.proc-next {
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.65), 0 4px 12px rgba(2, 132, 199, 0.3);
+}
+
 /* --------------------------------------------------------------------------
    6. DIALOG MODAL DE ADVERTENCIAS / RECHAZO DEL SO
    -------------------------------------------------------------------------- */

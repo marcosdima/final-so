@@ -1,0 +1,12 @@
+<dialog id="{{ id|default:'so-alert-dialog' }}" class="so-alert-dialog">
+  <div class="so-dialog-card">
+    <div class="so-dialog-head">
+      <i data-lucide="alert-triangle"></i>
+      <h4 id="{{ title_id|default:'so-dialog-title' }}">{{ title|default:'Acción Rechazada por el SO' }}</h4>
+    </div>
+    <p id="{{ message_id|default:'so-dialog-msg' }}" class="so-dialog-msg"></p>
+    <div class="so-dialog-footer">
+      <button type="button" id="{{ close_id|default:'btn-close-so-dialog' }}" class="btn btn-ctrl">Entendido</button>
+    </div>
+  </div>
+</dialog>

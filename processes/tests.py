@@ -173,6 +173,62 @@ class ProcessLifecycleTests(TestCase):
         self.assertIsNone(state["running"])
         self.assertEqual(state["states"]["1"], "READY")
 
+    def test_fcfs_tick_ignores_quantum_until_exit(self):
+        apply(
+            self.sim,
+            {"type": "set_algorithm", "payload": {"algorithm": "FCFS"}},
+            {"type": "create", "pid": 1, "burst_time": 3},
+            {"type": "admit", "pid": 1},
+            {"type": "dispatch", "pid": 1},
+        )
+        # 2 ticks en FCFS no deben desalojar a P1 aunque quantum por defecto sea 2
+        apply(self.sim, {"type": "tick"}, {"type": "tick"})
+        state = self.sim.get_state()
+        self.assertEqual(state["running"], 1)
+        self.assertEqual(state["pcbs"]["1"]["quantum_used"], 0)
+        self.assertEqual(state["pcbs"]["1"]["remaining_time"], 1)
+        # 3er tick completa la ráfaga y pasa a TERMINATED
+        apply(self.sim, {"type": "tick"})
+        state = self.sim.get_state()
+        self.assertIsNone(state["running"])
+        self.assertEqual(state["states"]["1"], "TERMINATED")
+
+    def test_tick_when_cpu_idle_is_rejected(self):
+        res = apply(self.sim, {"type": "tick"})
+        self.assertFalse(res["applied"])
+        self.assertIn("IDLE", res["reason"])
+        self.assertEqual(self.sim.get_state()["current_time"], 0)
+
+    def test_set_invalid_algorithm_rejected(self):
+        res = apply(
+            self.sim,
+            {"type": "set_algorithm", "payload": {"algorithm": "INVALID_ALGO"}},
+        )
+        self.assertFalse(res["applied"])
+        self.assertIn("Algoritmo desconocido", res["reason"])
+
+    def test_update_pcb_reorders_ready_queue_in_priority(self):
+        apply(
+            self.sim,
+            {"type": "set_algorithm", "payload": {"algorithm": "PRIORITY"}},
+            {"type": "create", "pid": 1, "priority": 4, "burst_time": 5},
+            {"type": "create", "pid": 2, "priority": 2, "burst_time": 3},
+            {"type": "admit", "pid": 1},
+            {"type": "admit", "pid": 2},
+        )
+        self.assertEqual(self.sim.get_state()["ready_queue"], [2, 1])
+        # Subir prioridad de P1 a 1 (máxima) y ajustar burst_time a 6
+        res = apply(
+            self.sim,
+            {"type": "update_pcb", "pid": 1, "priority": 1, "burst_time": 6},
+        )
+        self.assertTrue(res["applied"])
+        state = self.sim.get_state()
+        self.assertEqual(state["ready_queue"], [1, 2])
+        self.assertEqual(state["pcbs"]["1"]["priority"], 1)
+        self.assertEqual(state["pcbs"]["1"]["burst_time"], 6)
+        self.assertEqual(state["pcbs"]["1"]["remaining_time"], 6)
+
 
 class ProcessApiTests(TestCase):
     def setUp(self):

@@ -99,6 +99,7 @@ class ProcessLifecycleSimulation:
             "exit": self._handle_exit,
             "tick": self._handle_tick,
             "set_algorithm": self._handle_set_algorithm,
+            "update_pcb": self._handle_update_pcb,
         }
         self._rebuild(list(self.events))
 
@@ -180,6 +181,10 @@ class ProcessLifecycleSimulation:
             return False, "PID inválido."
         if pid in self.pcbs:
             return False, f"P{pid} ya existe."
+        if isinstance(priority, bool) or not isinstance(priority, int) or not (1 <= priority <= 5):
+            return False, "La prioridad debe ser un entero entre 1 (alta) y 5 (baja)."
+        if isinstance(burst, bool) or not isinstance(burst, int) or not (1 <= burst <= 20):
+            return False, "La ráfaga de CPU debe ser un entero entre 1 y 20."
 
         pcb = ProcessControlBlock(
             pid=pid,
@@ -189,6 +194,33 @@ class ProcessLifecycleSimulation:
             remaining_time=burst,
         )
         self.pcbs[pid] = pcb
+        return True, ""
+
+    def _handle_update_pcb(self, event_data: Any) -> tuple[bool, str]:
+        if not isinstance(event_data, dict):
+            return False, "Datos de PCB inválidos."
+        pid = event_data.get("pid")
+        pcb = self.pcbs.get(pid)
+        if not pcb:
+            return False, f"P{pid} no existe."
+        if pcb.state == ProcessState.TERMINATED:
+            return False, f"P{pid} ya ha terminado y su PCB no puede modificarse."
+
+        if "priority" in event_data:
+            prio = event_data["priority"]
+            if isinstance(prio, bool) or not isinstance(prio, int) or not (1 <= prio <= 5):
+                return False, "La prioridad debe estar entre 1 y 5."
+            pcb.priority = prio
+            self._sort_ready_queue()
+
+        if "burst_time" in event_data:
+            burst = event_data["burst_time"]
+            if isinstance(burst, bool) or not isinstance(burst, int) or not (1 <= burst <= 20):
+                return False, "La ráfaga de CPU debe estar entre 1 y 20."
+            consumed = max(0, pcb.burst_time - pcb.remaining_time)
+            pcb.burst_time = burst
+            pcb.remaining_time = max(1, burst - consumed)
+
         return True, ""
 
     def _handle_admit(self, pid: Any) -> tuple[bool, str]:
@@ -290,8 +322,6 @@ class ProcessLifecycleSimulation:
 
         return True, ""
 
-        return True, ""
-
     def _apply(self, event: dict[str, Any]) -> tuple[bool, str]:
         if not isinstance(event, dict):
             return False, "Evento inválido."
@@ -304,6 +334,8 @@ class ProcessLifecycleSimulation:
             return handler(None)
         if ev_type in ("set_algorithm",):
             return handler(event.get("payload") or event)
+        if ev_type == "update_pcb":
+            return handler(event)
         if ev_type == "create" and ("priority" in event or "burst_time" in event):
             return handler(event)
 

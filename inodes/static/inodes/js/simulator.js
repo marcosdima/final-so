@@ -12,6 +12,7 @@ document.addEventListener("DOMContentLoaded", () => {
     btnCarouselPrev: document.getElementById("carousel-prev"),
     btnCarouselNext: document.getElementById("carousel-next"),
     stepProgressLabel: document.getElementById("step-progress-label"),
+    btnStepAuto: document.getElementById("btn-step-auto"),
     btnStepReset: document.getElementById("btn-step-reset"),
     simplePanel: document.getElementById("indirect-simple-panel"),
     doublePanel: document.getElementById("indirect-double-panel"),

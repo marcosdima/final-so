@@ -5,58 +5,64 @@
 
 ## 1. Descripción
 
-Anima la **máquina de estados de un proceso** (NEW ➜ READY ➜ RUNNING ➜ WAITING /
-TERMINATED) con una **demostración automática**: la UI reproduce un guion preset
-(3 procesos que recorren todas las transiciones) paso a paso y narra cada movimiento
-con texto explicativo. El backend conserva el modelo manual (eventos
-`{type, pid}`) y la UI lo usa a través de la misma API stateless. La UI desplaza
-los tokens entre contenedores (animación FLIP) y resalta la flecha de la transición
-en curso.
+Anima la **máquina de estados de un proceso** (`NEW` ➜ `READY` ➜ `RUNNING` ➜ `WAITING` /
+`TERMINATED`) integrando un **Bloque de Control de Proceso (PCB)** por proceso y un
+**Planificador de Corto Plazo (Short-Term Scheduler)** con soporte para tres políticas:
+- **FCFS (First-Come, First-Served)**: No preemptivo, cola FIFO estricta.
+- **Round Robin (RR)**: Preemptivo por temporizador (`quantum` configurable).
+- **Prioridades (`PRIORITY`)**: Cola `READY` ordenada por prioridad (`1` = máxima, `5` = mínima).
 
-## 2. Estados
+Ofrece dos modos de operación sobre la misma API stateless:
+1. **Modo Demostración**: Guiones paso a paso específicos para cada algoritmo (`SCRIPT_FCFS`, `SCRIPT_RR`, `SCRIPT_PRIORITY`), con avance/retroceso manual (`Anterior` / `Paso a paso`) o reproducción automática con velocidad regulable.
+2. **Modo Manual**: Laboratorio interactivo donde el usuario crea procesos, inspecciona y edita su PCB en una tarjeta flotante anclada al proceso, ejecuta ciclos de reloj (`tick`) y dispara transiciones de estado.
+
+## 2. Estados y PCB
 
 | Estado | Significado | Cola asociada |
 |--------|-------------|---------------|
 | `NEW` | Recién creado, aún no admitido | — |
-| `READY` | En cola de listos | `ready_queue` |
-| `RUNNING` | En la CPU (máx. 1 a la vez) | `running` |
-| `WAITING` | Esperando E/S | `waiting_queue` |
-| `TERMINATED` | Finalizado | `terminated` |
+| `READY` | En cola de listos en memoria principal | `ready_queue` |
+| `RUNNING` | En ejecución dentro de la CPU (máx. 1 a la vez) | `running` |
+| `WAITING` | Bloqueado esperando operación de E/S o evento | `waiting_queue` |
+| `TERMINATED` | Ejecución completada | `terminated` |
 
-## 3. Transiciones y precondiciones
+Cada proceso posee un `ProcessControlBlock` (`pcbs[pid]`):
+- `pid`: Identificador entero ≥ 1.
+- `state`: Estado actual (`ProcessState`).
+- `priority`: Entero de `1` (alta) a `5` (baja).
+- `burst_time`: Ráfaga total estimada de CPU en ticks (`1..20`).
+- `remaining_time`: Ticks de CPU restantes para completar la ejecución.
+- `quantum_used`: Ticks consumidos en la ráfaga actual (solo se incrementa bajo `RR`).
 
-Cada acción es un **evento** `{type, pid}`. Si la precondición falla, el evento no se
-aplica y se devuelve `applied: false` con un `reason` (didáctico).
+## 3. Transiciones, eventos del planificador y precondiciones
 
-| Evento | Transición | Precondición |
-|--------|------------|--------------|
-| `create` | — ➜ NEW | PID entero ≥ 1 y aún no usado |
-| `admit` | NEW ➜ READY | el proceso está en NEW |
-| `dispatch` | READY ➜ RUNNING | CPU libre y proceso en READY |
-| `interrupt` | RUNNING ➜ READY | el proceso es el que está RUNNING |
-| `io_wait` | RUNNING ➜ WAITING | el proceso es el que está RUNNING |
-| `io_complete` | WAITING ➜ READY | el proceso está en WAITING |
-| `exit` | RUNNING ➜ TERMINATED | el proceso es el que está RUNNING |
+Cada acción es un **evento** enviado a `dispatch("apply", ...)`. Si la precondición falla, el evento no se aplica y se devuelve `applied: false` con un `reason` didáctico que la UI presenta mediante un `<dialog>` nativo de alerta del SO.
+
+| Evento | Transición / Efecto | Precondición |
+|--------|---------------------|--------------|
+| `create` | — ➜ `NEW` | `pid` entero ≥ 1 no existente; `priority` (1-5) y `burst_time` (1-20) opcionales |
+| `admit` | `NEW` ➜ `READY` | El proceso está en `NEW` (se inserta en `ready_queue` según algoritmo) |
+| `dispatch` | `READY` ➜ `RUNNING` | CPU libre (`running is None`) y proceso en `READY` (si se omite `pid`, despacha `next_scheduled`) |
+| `interrupt` | `RUNNING` ➜ `READY` | El proceso es el que está en `RUNNING` |
+| `io_wait` | `RUNNING` ➜ `WAITING` | El proceso es el que está en `RUNNING` |
+| `io_complete` | `WAITING` ➜ `READY` | El proceso está en `WAITING` |
+| `exit` | `RUNNING` ➜ `TERMINATED` | El proceso es el que está en `RUNNING` |
+| `tick` | Avanza 1 ciclo de CPU | Hay un proceso en `RUNNING` (`running is not None`). Decrementa `remaining_time`; si llega a 0 transiciona a `TERMINATED`. En `RR`, incrementa `quantum_used` y si alcanza `quantum` dispara `interrupt`. |
+| `set_algorithm` | Cambia política (`FCFS`, `RR`, `PRIORITY`) | Algoritmo válido; reordena `ready_queue` inmediatamente |
+| `update_pcb` | Modifica `priority` o `burst_time` | Proceso existente y no `TERMINATED`; reordena `ready_queue` si cambia `priority` |
 
 ## 4. Modelo stateless (event-sourcing)
 
-El estado es una función pura del **log de eventos** (la secuencia de transiciones
-aplicadas):
+El estado es una función pura del **log de eventos**:
 
 ```
 estado = replay(log de eventos)
 ```
 
 - El cliente guarda localmente el log (`events`) y lo envía completo en cada petición.
-- Para aplicar un evento nuevo, el cliente manda `{"events": [...log...], "event": {...}}`.
-  El servidor replay el log, valida y aplica el evento nuevo, y devuelve el **log
-  efectivo** (el cliente lo sincroniza desde `state.events`).
-- Un evento inválido **no** se añade al log; el estado queda como estaba y se devuelve el
-  motivo.
+- Para aplicar un evento nuevo, el cliente envía `{"events": [...log...], "event": {...}}`.
+- Para retroceder un paso o reconstruir un punto anterior, el cliente envía `{"events": [...prefijo...]}`.
 - **Reiniciar** = aplicar con `events: []` (estado vacío).
-
-Esto permite control manual ilimitado sin memoria de servidor: dos visitantes en el mismo
-log ven exactamente lo mismo (clave para Render).
 
 ## 5. API
 
@@ -64,12 +70,23 @@ log ven exactamente lo mismo (clave para Render).
 
 ```json
 {
-  "meta": { "slug": "processes", "seed": 1 },
+  "meta": { "slug": "processes", "seed": 1, "action_url": "/processes/api/action/" },
   "pids": [1, 2],
   "states": { "1": "READY", "2": "RUNNING" },
-  "ready_queue": [1], "waiting_queue": [], "running": 2, "terminated": [],
-  "events": [ { "type": "create", "pid": 1 }, … ],
-  "history": [ { "event": {…}, "state": {…} }, … ]
+  "pcbs": {
+    "1": { "pid": 1, "state": "READY", "priority": 2, "burst_time": 4, "remaining_time": 4, "quantum_used": 0 },
+    "2": { "pid": 2, "state": "RUNNING", "priority": 1, "burst_time": 3, "remaining_time": 2, "quantum_used": 1 }
+  },
+  "ready_queue": [1],
+  "waiting_queue": [],
+  "running": 2,
+  "terminated": [],
+  "algorithm": "RR",
+  "quantum": 2,
+  "next_scheduled": 1,
+  "current_time": 1,
+  "events": [ ... ],
+  "history": [ ... ]
 }
 ```
 
@@ -77,44 +94,15 @@ log ven exactamente lo mismo (clave para Render).
 
 | Acción | Payload | Resultado |
 |--------|---------|-----------|
-| `apply` | `{"events": [...], "event": {type, pid} \| null}` | `{"applied": bool, "reason": str, "event": {…}}` |
+| `apply` | `{"events": [...], "event": {...} \| null}` | `{"applied": bool, "reason": str, "event": {...}}` |
 
-- `event: null` ⇒ sólo reconstruir el estado del log (sin aplicar nada).
-- `events: []` + `event: null` ⇒ estado inicial (reinicio).
+## 6. Criterios de aceptación
 
-### Errores de dominio (`SimulationError` ⇒ 400)
-
-- `events` no es una lista.
-- Algún evento del log es inválido (log corrupto).
-
-> Un evento nuevo inválido **no** es un 400: responde 200 con `applied: false` y `reason`.
-
-## 6. Contrato de determinismo
-
-Mismo log ⇒ mismo estado para cualquier cliente. La aleatoriedad (`seed`) no afecta al
-guion (se conserva por uniformidad del contrato).
-
-## 7. Criterios de aceptación
-
-- CA1 · Estado inicial (`events: []`): sin procesos, `running=None`.
-- CA2 · `create` añade un proceso en NEW; `pids` lo refleja.
-- CA3 · Secuencia admit ➜ dispatch ➜ exit deja el proceso en TERMINATED.
-- CA4 · `interrupt` sobre el RUNNING lo devuelve a READY y libera la CPU.
-- CA5 · Una transición inválida responde `applied=false` con `reason` y no altera el log.
-- CA6 · La página carga con 200 y el estado embebido es coherente.
-
-## 8. UI asociada
-
-- Plantilla: `processes/templates/processes/index.html` (extiende `base.html`).
-- JS: `static/processes/js/main.js` (render FLIP + guion de demo + narrador).
-- **Demostración automática**: un guion preset en el cliente (`SCRIPT`) crea P1, P2 y P3
-  y los lleva por todas las transiciones (incluida una espera de E/S y una interrupción
-  por quantum). Cada paso aplica sus eventos vía la acción `apply` (mismo camino que el
-  control manual) y muestra un texto explicativo en el panel narrador, resaltando la
-  flecha de la transición.
-- Controles: **Reproducir/Pausar**, **Paso** (avanza un paso con reproducción pausada),
-  **Reiniciar** (aplica `events: []` y vuelve a empezar) y **Velocidad**
-  (lenta/normal/rápida). La demo arranca sola al cargar la página.
-- Referencia didáctica: sección «Algoritmos de selección de procesos» (FCFS, SJF/SRTF,
-  Round Robin, Prioridad, MLFQ); la cola de la demo se comporta como FCFS con
-  preemptividad tipo Round Robin.
+- CA1 · Estado inicial (`events: []`): sin procesos, `running=None`, `algorithm="FCFS"`.
+- CA2 · `create` añade un proceso en `NEW` con su PCB inicializado.
+- CA3 · Secuencia `admit` ➜ `dispatch` ➜ `exit` deja el proceso en `TERMINATED`.
+- CA4 · `interrupt` sobre el `RUNNING` lo devuelve a `READY` y libera la CPU.
+- CA5 · Una transición inválida o `tick` con CPU inactiva responde `applied=false` con `reason` y no altera el log.
+- CA6 · En `FCFS` o `PRIORITY`, `tick` no incrementa `quantum_used` ni desaloja por quantum; en `RR` desaloja al alcanzar `quantum`.
+- CA7 · En `PRIORITY`, `ready_queue` y `next_scheduled` se ordenan por `priority` ascendente (1 antes que 3).
+- CA8 · `update_pcb` permite ajustar `priority` y `burst_time` en modo manual y reordena `ready_queue`.

@@ -66,8 +66,22 @@
         </div>
         <div class="inspector-body">
           <div class="pcb-field"><span class="pcb-key">Estado:</span> <span class="pcb-val badge-state" id="pcb-state-val">READY</span></div>
-          <div class="pcb-field"><span class="pcb-key">Prioridad:</span> <span class="pcb-val" id="pcb-priority-val">1</span></div>
-          <div class="pcb-field"><span class="pcb-key">Ráfaga total:</span> <span class="pcb-val" id="pcb-burst-val">4</span></div>
+          <div class="pcb-field">
+            <span class="pcb-key">Prioridad (1-5):</span>
+            <span class="pcb-val-group">
+              <button type="button" class="btn-pcb-step is-hidden" data-pcb-field="priority" data-delta="-1" title="Subir prioridad (menor número)">−</button>
+              <span class="pcb-val" id="pcb-priority-val">1</span>
+              <button type="button" class="btn-pcb-step is-hidden" data-pcb-field="priority" data-delta="1" title="Bajar prioridad (mayor número)">+</button>
+            </span>
+          </div>
+          <div class="pcb-field">
+            <span class="pcb-key">Ráfaga total:</span>
+            <span class="pcb-val-group">
+              <button type="button" class="btn-pcb-step is-hidden" data-pcb-field="burst_time" data-delta="-1" title="Reducir ráfaga">−</button>
+              <span class="pcb-val" id="pcb-burst-val">4</span>
+              <button type="button" class="btn-pcb-step is-hidden" data-pcb-field="burst_time" data-delta="1" title="Aumentar ráfaga">+</button>
+            </span>
+          </div>
           <div class="pcb-field"><span class="pcb-key">Tiempo restante:</span> <span class="pcb-val" id="pcb-remaining-val">4</span></div>
           <div class="pcb-field"><span class="pcb-key">Quantum consumido:</span> <span class="pcb-val" id="pcb-quantum-val">0</span></div>
         </div>
@@ -103,7 +117,10 @@
         <!-- Controles de Demostración (Por defecto en Pausa) -->
         <div class="footer-ctrl-panel" id="controls-demo">
           <div class="ctrl-btn-row">
-            <button type="button" id="btn-step" class="btn btn-ctrl btn-highlight" title="Avanzar un paso en el guion">
+            <button type="button" id="btn-prev-step" class="btn btn-ctrl" title="Retroceder un paso en el guion (←)" disabled>
+              <i data-lucide="skip-back"></i> Anterior
+            </button>
+            <button type="button" id="btn-step" class="btn btn-ctrl btn-highlight" title="Avanzar un paso en el guion (→)">
               <i data-lucide="skip-forward"></i> Paso a paso
             </button>
             <button type="button" id="btn-play" class="btn btn-ctrl btn-play is-paused">
@@ -233,18 +250,7 @@
   </div>
 
   <!-- Dialog Modal de Advertencias / Motivo de Rechazo del SO -->
-  <dialog id="so-alert-dialog" class="so-alert-dialog">
-    <div class="so-dialog-card">
-      <div class="so-dialog-head">
-        <i data-lucide="alert-triangle"></i>
-        <h4 id="so-dialog-title">Acción Rechazada por el SO</h4>
-      </div>
-      <p id="so-dialog-msg" class="so-dialog-msg">Motivo del rechazo.</p>
-      <div class="so-dialog-footer">
-        <button type="button" id="btn-close-so-dialog" class="btn btn-ctrl">Entendido</button>
-      </div>
-    </div>
-  </dialog>
+  <c-alert-dialog></c-alert-dialog>
 
   {{ structure|json_script:"process-data" }}
   <script type="module" src="{% static 'processes/js/main.js' %}"></script>

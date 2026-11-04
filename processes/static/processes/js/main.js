@@ -9,6 +9,7 @@ const controlsManual = document.getElementById('controls-manual');
 // Controles demo
 const btnPlay = document.getElementById('btn-play');
 const btnPlayLabel = document.getElementById('btn-play-label');
+const btnPrevStep = document.getElementById('btn-prev-step');
 const btnStep = document.getElementById('btn-step');
 const btnResetDemo = document.getElementById('btn-reset-demo');
 const speedButtons = document.querySelectorAll('.btn-speed-pill');
@@ -39,6 +40,7 @@ const pcbPriorityVal = document.getElementById('pcb-priority-val');
 const pcbBurstVal = document.getElementById('pcb-burst-val');
 const pcbRemainingVal = document.getElementById('pcb-remaining-val');
 const pcbQuantumVal = document.getElementById('pcb-quantum-val');
+const pcbStepButtons = document.querySelectorAll('.btn-pcb-step');
 
 // Dialog de alerta del SO
 const soDialog = document.getElementById('so-alert-dialog');
@@ -72,6 +74,7 @@ const narrationText = document.getElementById('narration-text');
 let structure = dataEl ? JSON.parse(dataEl.textContent) : null;
 let log = structure?.events ? [...structure.events] : [];
 const seed = structure?.meta?.seed ?? null;
+const actionUrl = structure?.meta?.action_url || '/processes/api/action/';
 
 let currentMode = 'demo'; // 'demo' | 'manual'
 let currentAlgorithm = 'FCFS'; // 'FCFS' | 'RR' | 'PRIORITY'
@@ -96,6 +99,13 @@ function ensureToken(pid) {
     tokens.set(pid, el);
   }
   return el;
+}
+
+function syncPcbStepButtons(pcb) {
+  const canEdit = currentMode === 'manual' && pcb && pcb.state !== 'TERMINATED';
+  pcbStepButtons.forEach((btn) => {
+    btn.classList.toggle('is-hidden', !canEdit);
+  });
 }
 
 function selectProcess(pid) {
@@ -125,6 +135,7 @@ function selectProcess(pid) {
           pcbQuantumVal.textContent = 'N/A (No aplica)';
         }
       }
+      syncPcbStepButtons(pcb);
       // Posicionar inspector cerca del token clickeado
       setTimeout(() => positionInspectorNearToken(pid), 20);
     }
@@ -218,18 +229,29 @@ function render(s) {
     }
   }
 
-  // 3. Mover tokens a su contenedor (LAST)
-  for (const pid of s.pids) {
-    const state = s.states[pid];
-    const token = ensureToken(pid);
-    token.classList.toggle('proc-running', state === 'RUNNING');
-    token.classList.toggle('proc-waiting', state === 'WAITING');
-    token.classList.toggle('proc-terminated', state === 'TERMINATED');
-    token.classList.toggle('proc-selected', pid === selectedPid);
+  // 3. Mover tokens a su contenedor respetando el orden exacto de cada cola (LAST)
+  const orderedGroups = {
+    NEW: s.pids.filter((pid) => s.states[pid] === 'NEW'),
+    READY: Array.isArray(s.ready_queue) ? s.ready_queue : [],
+    RUNNING: s.running != null ? [s.running] : [],
+    WAITING: Array.isArray(s.waiting_queue) ? s.waiting_queue : [],
+    TERMINATED: Array.isArray(s.terminated) ? s.terminated : [],
+  };
+
+  for (const [state, pidList] of Object.entries(orderedGroups)) {
     const container = nodeForState(state);
-    if (container && token.parentElement !== container) {
-      container.appendChild(token);
-    }
+    if (!container) continue;
+    pidList.forEach((pid, idx) => {
+      const token = ensureToken(pid);
+      token.classList.toggle('proc-running', state === 'RUNNING');
+      token.classList.toggle('proc-waiting', state === 'WAITING');
+      token.classList.toggle('proc-terminated', state === 'TERMINATED');
+      token.classList.toggle('proc-selected', pid === selectedPid);
+      token.classList.toggle('proc-next', state === 'READY' && pid === s.next_scheduled);
+      if (container.children[idx] !== token) {
+        container.insertBefore(token, container.children[idx] || null);
+      }
+    });
   }
 
   // 4. Animación FLIP
@@ -262,6 +284,8 @@ function render(s) {
   if (selectedPid != null && s.pcbs?.[selectedPid]) {
     const pcb = s.pcbs[selectedPid];
     if (pcbStateVal) pcbStateVal.textContent = pcb.state;
+    if (pcbPriorityVal) pcbPriorityVal.textContent = String(pcb.priority);
+    if (pcbBurstVal) pcbBurstVal.textContent = `${pcb.burst_time} ticks`;
     if (pcbRemainingVal) pcbRemainingVal.textContent = `${pcb.remaining_time} ticks`;
     if (pcbQuantumVal) {
       if (s.algorithm === 'RR') {
@@ -270,6 +294,7 @@ function render(s) {
         pcbQuantumVal.textContent = 'N/A (No aplica)';
       }
     }
+    syncPcbStepButtons(pcb);
     setTimeout(() => positionInspectorNearToken(selectedPid), 600);
   }
 
@@ -415,7 +440,7 @@ function drawArrows() {
 // ------------------------------------------------------------------
 async function applyEvent(event) {
   try {
-    const res = await fetch('/processes/api/action/', {
+    const res = await fetch(actionUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ seed, action: 'apply', payload: { events: log, event } }),
@@ -432,9 +457,40 @@ async function applyEvent(event) {
   }
 }
 
+async function rebuildWithEvents(eventsList) {
+  try {
+    const res = await fetch(actionUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ seed, action: 'apply', payload: { events: eventsList } }),
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    structure = data.state;
+    log = structure.events;
+    // Remover tokens que ya no existan en el estado reconstruido
+    const validPids = new Set(structure.pids);
+    tokens.forEach((el, pid) => {
+      if (!validPids.has(pid)) {
+        el.remove();
+        tokens.delete(pid);
+      }
+    });
+    if (selectedPid != null && !validPids.has(selectedPid)) {
+      selectedPid = null;
+      if (pcbInspector) pcbInspector.classList.add('is-hidden');
+    }
+    render(structure);
+    return true;
+  } catch (e) {
+    setNarration('Error de comunicación', 'No se pudo reconstruir el estado.');
+    return false;
+  }
+}
+
 async function resetSimulation() {
   try {
-    const res = await fetch('/processes/api/action/', {
+    const res = await fetch(actionUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ seed, action: 'apply', payload: { events: [] } }),
@@ -694,10 +750,21 @@ function setPlaying(on) {
   if (btnPlayLabel) btnPlayLabel.textContent = on ? 'Pausar' : 'Reproducir';
 }
 
+function updateDemoStepButtons() {
+  const script = getActiveScript();
+  if (btnPrevStep) {
+    btnPrevStep.disabled = stepIndex <= 0;
+  }
+  if (btnStep) {
+    btnStep.disabled = stepIndex >= script.length;
+  }
+}
+
 async function runStep() {
   const script = getActiveScript();
   if (stepIndex >= script.length) {
     finishDemo();
+    updateDemoStepButtons();
     return false;
   }
   const step = script[stepIndex++];
@@ -705,15 +772,41 @@ async function runStep() {
     const result = await applyEvent(ev);
     if (result && !result.applied) {
       setNarration('Error en el guion', `El evento ${ev.type} no se aplicó: ${result.reason}`, true);
+      updateDemoStepButtons();
       return false;
     }
   }
   highlightArrow(step.transition || null);
   setNarration(step.tag, step.text);
+  updateDemoStepButtons();
 
   if (stepIndex >= script.length) {
     setPlaying(false);
   }
+  return true;
+}
+
+async function runPrevStep() {
+  if (stepIndex <= 0) return false;
+  setPlaying(false);
+  clearTimeout(timer);
+  stepIndex -= 1;
+
+  if (stepIndex === 0) {
+    await resetDemo();
+    return true;
+  }
+
+  const script = getActiveScript();
+  const accumulatedEvents = [];
+  for (let i = 0; i < stepIndex; i++) {
+    accumulatedEvents.push(...script[i].events);
+  }
+  await rebuildWithEvents(accumulatedEvents);
+  const currentStep = script[stepIndex - 1];
+  highlightArrow(currentStep.transition || null);
+  setNarration(currentStep.tag, currentStep.text);
+  updateDemoStepButtons();
   return true;
 }
 
@@ -745,6 +838,7 @@ async function resetDemo() {
   setPlaying(false);
   highlightArrow(null);
   stepIndex = 0;
+  updateDemoStepButtons();
   await resetSimulation();
   setNarration(
     `${currentAlgorithm} · Inicio`,
@@ -787,6 +881,7 @@ async function changeSchedulerAlgorithm(algo) {
   // Reiniciar estado y cargar nuevo algoritmo
   await resetSimulation();
   stepIndex = 0;
+  updateDemoStepButtons();
 
   const result = await applyEvent({
     type: 'set_algorithm',
@@ -804,7 +899,8 @@ async function changeSchedulerAlgorithm(algo) {
 }
 
 async function tickCpu() {
-  if (structure?.running === null) {
+  const prevRunning = structure?.running ?? null;
+  if (prevRunning === null) {
     showSoAlert('CPU Inactiva (IDLE)', 'No hay ningún proceso en estado RUNNING. Despacha un proceso a la CPU antes de ejecutar ciclos de reloj.');
     return;
   }
@@ -817,6 +913,23 @@ async function tickCpu() {
         'Tick CPU ejecutado',
         `P${structure.running} consumió 1 ciclo. Tiempo restante: ${pcb?.remaining_time ?? '?'}${qInfo}.`
       );
+    } else if (prevRunning !== null) {
+      const newState = structure?.states?.[prevRunning];
+      if (newState === 'TERMINATED') {
+        highlightArrow('salir');
+        setTimeout(() => highlightArrow(null), 1200);
+        setNarration(
+          `P${prevRunning} Finalizado (TERMINATED)`,
+          `P${prevRunning} agotó su tiempo restante de ráfaga en este tick y liberó la CPU.`
+        );
+      } else if (newState === 'READY') {
+        highlightArrow('interrumpir');
+        setTimeout(() => highlightArrow(null), 1200);
+        setNarration(
+          `Quantum Expirado · P${prevRunning}`,
+          `P${prevRunning} alcanzó el límite de quantum (${structure?.quantum || 2} ticks) en Round Robin y fue desalojado hacia READY.`
+        );
+      }
     }
   } else if (result && !result.applied) {
     showSoAlert('Ciclo de CPU Rechazado', result.reason || 'No se pudo avanzar el ciclo de reloj.');
@@ -873,19 +986,22 @@ function setMode(mode) {
   controlsDemo.classList.toggle('is-hidden', mode !== 'demo');
   controlsManual.classList.toggle('is-hidden', mode !== 'manual');
 
+  if (selectedPid != null && structure?.pcbs?.[selectedPid]) {
+    syncPcbStepButtons(structure.pcbs[selectedPid]);
+  }
+
   if (mode === 'manual') {
     clearTimeout(timer);
     setPlaying(false);
     highlightArrow(null);
-    // Actualizar disponibilidad de botones
-  updateActionButtonsAvailability();
+    updateActionButtonsAvailability();
 
-  // Habilitar o deshabilitar botón Tick según si hay alguien en CPU
-  if (btnTick) {
-    btnTick.disabled = (s.running === null);
-  }
-    setNarration('Modo Manual Activado', 'Crea procesos, haz clic en ellos para ver su PCB y usa las transiciones.');
+    if (btnTick) {
+      btnTick.disabled = (structure?.running === null);
+    }
+    setNarration('Modo Manual Activado', 'Crea procesos, haz clic en ellos para ver o editar su PCB y aplica las transiciones.');
   } else {
+    updateDemoStepButtons();
     setNarration('Modo Demostración', `Demostración de ${currentAlgorithm} lista. Pulsa «Paso a paso» para continuar.`);
   }
 }
@@ -928,6 +1044,12 @@ if (btnPlay) {
       return;
     }
     playFromHere();
+  });
+}
+
+if (btnPrevStep) {
+  btnPrevStep.addEventListener('click', async () => {
+    await runPrevStep();
   });
 }
 
@@ -984,13 +1106,32 @@ btnClosePcb?.addEventListener('click', () => {
   if (pcbInspector) pcbInspector.classList.add('is-hidden');
   selectedPid = null;
   tokens.forEach((el) => el.classList.remove('proc-selected'));
-  // Actualizar disponibilidad de botones
   updateActionButtonsAvailability();
 
-  // Habilitar o deshabilitar botón Tick según si hay alguien en CPU
   if (btnTick) {
-    btnTick.disabled = (s.running === null);
+    btnTick.disabled = (structure?.running === null);
   }
+});
+
+pcbStepButtons.forEach((btn) => {
+  btn.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    if (selectedPid == null || !structure?.pcbs?.[selectedPid]) return;
+    const pcb = structure.pcbs[selectedPid];
+    const field = btn.dataset.pcbField;
+    const delta = parseInt(btn.dataset.delta, 10) || 0;
+    if (field === 'priority') {
+      const nextPrio = Math.max(1, Math.min(5, pcb.priority + delta));
+      if (nextPrio === pcb.priority) return;
+      const res = await applyEvent({ type: 'update_pcb', pid: selectedPid, priority: nextPrio });
+      if (res && !res.applied) showSoAlert('No se pudo actualizar PCB', res.reason);
+    } else if (field === 'burst_time') {
+      const nextBurst = Math.max(1, Math.min(20, pcb.burst_time + delta));
+      if (nextBurst === pcb.burst_time) return;
+      const res = await applyEvent({ type: 'update_pcb', pid: selectedPid, burst_time: nextBurst });
+      if (res && !res.applied) showSoAlert('No se pudo actualizar PCB', res.reason);
+    }
+  });
 });
 
 // Controles manuales
@@ -1007,17 +1148,28 @@ actionButtons.forEach((btn) => {
   btn.addEventListener('click', () => runManualAction(btn.dataset.action));
 });
 
-// Tecla Escape cierra modal o inspector
+// Tecla Escape cierra modal o inspector; flechas ← / → avanzan o retroceden en modo Demo
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     closeTheoryModal();
     if (pcbInspector && !pcbInspector.classList.contains('is-hidden')) {
-      pcbInspector.classList.add('is-hidden');
+      btnClosePcb?.click();
+    }
+    return;
+  }
+  if (currentMode === 'demo' && theoryModal?.classList.contains('is-hidden') && !soDialog?.open) {
+    if (e.key === 'ArrowRight') {
+      e.preventDefault();
+      btnStep?.click();
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      btnPrevStep?.click();
     }
   }
 });
 
 // Inicialización: render inicial sin autoplay
+updateDemoStepButtons();
 render(structure);
 
 if (diagramWrap && typeof ResizeObserver !== 'undefined') {

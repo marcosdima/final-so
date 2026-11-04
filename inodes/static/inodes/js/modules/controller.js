@@ -21,6 +21,7 @@ let posInput,
     btnCarouselPrev,
     btnCarouselNext,
     stepProgressLabel,
+    btnStepAuto,
     btnStepReset,
     simplePanel,
     doublePanel,
@@ -48,6 +49,7 @@ export function initController(uiElements) {
     btnCarouselPrev,
     btnCarouselNext,
     stepProgressLabel,
+    btnStepAuto,
     btnStepReset,
     simplePanel,
     doublePanel,
@@ -127,7 +129,10 @@ function attachEventListeners() {
     else if (e.key === "ArrowRight") { stopAuto(); nextStep(); }
   });
 
-  // Step reset
+  // Step auto & reset
+  btnStepAuto?.addEventListener("click", () => {
+    toggleAuto();
+  });
   btnStepReset?.addEventListener("click", () => {
     stopAuto();
     renderStep(0);
@@ -239,9 +244,10 @@ export async function resolvePosition(pos, forcedPointerDomId = null) {
   if (isNaN(pos) || pos < 1) pos = 1;
   const requestId = ++resolutionRequestId;
   const seed = simData?.meta?.seed;
+  const actionUrl = simData?.meta?.action_url || "/inodes/api/action/";
 
   try {
-    const response = await fetch(`/inodes/api/action/`, {
+    const response = await fetch(actionUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ seed, action: "resolve", payload: { pos } }),
@@ -432,6 +438,10 @@ export function toggleAuto() {
 
 export function startAuto() {
   if (currentStepIdx >= (currentResolution?.steps?.length || 4) - 1) currentStepIdx = -1;
+  if (btnStepAuto) {
+    btnStepAuto.classList.add("btn-play");
+    btnStepAuto.setAttribute("aria-pressed", "true");
+  }
   nextStep();
   autoTimer = setInterval(() => {
     if (currentStepIdx >= (currentResolution?.steps?.length || 4) - 1) {
@@ -446,6 +456,10 @@ export function stopAuto() {
   if (autoTimer) {
     clearInterval(autoTimer);
     autoTimer = null;
+  }
+  if (btnStepAuto) {
+    btnStepAuto.classList.remove("btn-play");
+    btnStepAuto.setAttribute("aria-pressed", "false");
   }
 }
 

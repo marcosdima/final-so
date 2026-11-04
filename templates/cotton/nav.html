@@ -1,5 +1,10 @@
-<nav class="app-nav">
-  <a href="{% url 'core:landing' %}"><i data-lucide="home" class="icon-inline"></i> Inicio</a>
-  <a href="{% url 'inodes:index' %}"><i data-lucide="hard-drive" class="icon-inline"></i> Inodos</a>
-  <a href="{% url 'processes:index' %}"><i data-lucide="cpu" class="icon-inline"></i> Procesos</a>
+<nav class="app-nav" aria-label="Navegación principal">
+  <a href="{% url 'core:landing' %}" class="{% if active_namespace == 'core' %}active{% endif %}">
+    <i data-lucide="home" class="icon-inline"></i> Inicio
+  </a>
+  {% for sim in nav_simulations %}
+  <a href="{% url sim.url_name %}" class="{% if active_namespace == sim.slug %}active{% endif %}">
+    <i data-lucide="{{ sim.icon }}" class="icon-inline"></i> {{ sim.title }}
+  </a>
+  {% endfor %}
 </nav>

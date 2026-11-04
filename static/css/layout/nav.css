@@ -25,3 +25,10 @@
   background: var(--bg-hover);
   color: var(--active-blue);
 }
+
+.app-nav a.active {
+  background: rgba(56, 189, 248, 0.14);
+  color: var(--active-blue);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  font-weight: 600;
+}

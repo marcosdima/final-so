@@ -48,3 +48,8 @@ class SimulationSpec:
     def url_name(self) -> str:
         """Nombre namespaced de su vista principal (para `{% url %}`)."""
         return f"{self.slug}:index"
+
+    @property
+    def action_url_name(self) -> str:
+        """Nombre namespaced de su endpoint de acciones (para `{% url %}`)."""
+        return f"{self.slug}:action_api"
